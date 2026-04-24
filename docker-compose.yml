@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: swp1-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  ia-service:
+    build: ./ia-service
+    container_name: swp1-ia-service
+    ports:
+      - "8000:8000"
+
+volumes:
+  mongo_data:
