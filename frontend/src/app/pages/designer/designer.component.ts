@@ -33,7 +33,7 @@ import { WorkflowService } from '../../services/workflow.service';
         <div class="canvas">
           <div class="nodes-flow">
             <div *ngFor="let node of nodes; let i = index" class="node-wrapper">
-              <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVITY'">
+              <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVIDAD'">
                 <div class="node-header">
                   <span class="type">{{ node.tipo }}</span>
                   <button class="delete-btn" (click)="removeNode(node)">×</button>
@@ -41,7 +41,7 @@ import { WorkflowService } from '../../services/workflow.service';
                 
                 <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre...">
                 
-                <div *ngIf="node.tipo === 'ACTIVITY'" class="field-section">
+                <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
                   <select [(ngModel)]="node.departamentoId" class="minimal-select">
                     <option value="1">Atención al Cliente</option>
                     <option value="2">Técnico</option>
@@ -49,11 +49,25 @@ import { WorkflowService } from '../../services/workflow.service';
                   </select>
                   
                   <div class="fields-list">
-                    <div *ngFor="let field of node.campos" class="field-tag">
-                      {{ field.etiqueta }}
+                    <div *ngFor="let field of node.campos" class="field-row">
+                      <input [(ngModel)]="field.etiqueta" class="minimal-input field-label">
+                      <select [(ngModel)]="field.tipo" class="minimal-select field-type">
+                        <option value="TEXTO">Texto</option>
+                        <option value="NUMERO">Número</option>
+                        <option value="SELECCION">Opciones</option>
+                        <option value="FOTO">Foto/Archivo</option>
+                      </select>
+                      <button (click)="removeField(node, field)" class="btn-remove">×</button>
+                      
+                      <div *ngIf="field.tipo === 'SELECCION'" class="options-config">
+                        <input [(ngModel)]="field.tempOpcion" placeholder="Nueva opción..." (keyup.enter)="addOpcion(field)">
+                        <div class="tags">
+                          <span *ngFor="let opt of field.opciones" class="tag">{{ opt }}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <button class="add-field-btn" (click)="addField(node)">+ Campo</button>
+                  <button class="add-field-btn" (click)="addField(node)">+ Añadir Campo</button>
                 </div>
               </div>
               
@@ -238,17 +252,41 @@ import { WorkflowService } from '../../services/workflow.service';
 
     .fields-list {
       display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .field-row {
+      display: flex;
       flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      background: #f8fafc;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .field-label { flex: 1; border-bottom: 1px solid #cbd5e1 !important; }
+    .field-type { width: 100px; }
+
+    .options-config {
+      width: 100%;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
       gap: 4px;
     }
 
-    .field-tag {
+    .options-config input {
       font-size: 0.75rem;
-      background: #f1f5f9;
-      padding: 2px 8px;
-      border-radius: 12px;
-      color: var(--text-muted);
+      padding: 4px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
     }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag { font-size: 0.7rem; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; }
 
     .add-field-btn {
       background: none;
@@ -292,9 +330,13 @@ export class DesignerComponent {
   conexiones: any[] = [];
 
   addNode(tipo: string) {
+    const backendTipo = tipo === 'START' ? 'INICIO' : 
+                       tipo === 'ACTIVITY' ? 'ACTIVIDAD' : 
+                       tipo === 'END' ? 'FIN' : tipo;
+                       
     const newNode = {
       id: 'n' + (this.nodes.length + 1),
-      tipo,
+      tipo: backendTipo,
       nombre: tipo === 'START' ? 'Inicio' : tipo === 'END' ? 'Fin' : 'Nueva Etapa',
       departamentoId: '1',
       campos: []
@@ -316,14 +358,24 @@ export class DesignerComponent {
   }
 
   addField(node: any) {
-    const label = prompt('Nombre del dato a capturar:');
-    if (label) {
-      if (!node.campos) node.campos = [];
-      node.campos.push({
-        nombre: label.toLowerCase().replace(/ /g, '_'),
-        etiqueta: label,
-        tipo: 'TEXTO'
-      });
+    if (!node.campos) node.campos = [];
+    node.campos.push({
+      nombre: 'campo_' + (node.campos.length + 1),
+      etiqueta: 'Nuevo Campo',
+      tipo: 'TEXTO',
+      opciones: []
+    });
+  }
+
+  removeField(node: any, field: any) {
+    node.campos = node.campos.filter((f: any) => f !== field);
+  }
+
+  addOpcion(field: any) {
+    if (field.tempOpcion) {
+      if (!field.opciones) field.opciones = [];
+      field.opciones.push(field.tempOpcion);
+      field.tempOpcion = '';
     }
   }
 

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/tramites")
@@ -36,11 +37,34 @@ public class TramiteController {
         tramite.setEstado("EN_PROCESO");
         tramite.setFechaInicio(LocalDateTime.now());
         
+        // El nodo actual después de START es la primera actividad
+        // En Flowable, al iniciar, se posiciona en el primer nodo ejecutable
         tramite = tramiteRepository.save(tramite);
 
-        // Iniciar en el motor de Flowable
         workflowEngineService.iniciarTramite(politicaId, tramite.getId());
+        
+        // Actualizar el nodo inicial
+        String nodoInicial = workflowEngineService.getNodoActual(tramite.getId());
+        tramite.setNodoActualId(nodoInicial);
+        return tramiteRepository.save(tramite);
+    }
 
-        return tramite;
+    @PostMapping("/{id}/completar")
+    public Tramite completar(@PathVariable String id, @RequestBody Map<String, Object> payload) {
+        Tramite tramite = tramiteRepository.findById(id).orElseThrow();
+        
+        // Enviar datos al motor (variables de proceso)
+        Map<String, Object> variables = (Map<String, Object>) payload.get("datos");
+        workflowEngineService.completarTarea(id, variables);
+
+        // Actualizar el estado del trámite en Mongo
+        String siguienteNodo = workflowEngineService.getNodoActual(id);
+        tramite.setNodoActualId(siguienteNodo);
+        
+        if ("FIN".equals(siguienteNodo)) {
+            tramite.setEstado("FINALIZADO");
+        }
+
+        return tramiteRepository.save(tramite);
     }
 }

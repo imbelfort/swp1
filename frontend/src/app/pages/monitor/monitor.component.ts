@@ -48,7 +48,18 @@ import { WorkflowService } from '../../services/workflow.service';
           <div class="form-body">
             <div *ngFor="let campo of currentNode?.campos" class="form-field">
               <label>{{ campo.etiqueta }}</label>
-              <input [(ngModel)]="campo.valor" class="minimal-input" type="text">
+              
+              <ng-container [ngSwitch]="campo.tipo">
+                <select *ngSwitchCase="'SELECCION'" [(ngModel)]="campo.valor" class="minimal-input">
+                  <option *ngFor="let opt of campo.opciones" [value]="opt">{{ opt }}</option>
+                </select>
+                
+                <input *ngSwitchCase="'FOTO'" type="file" class="minimal-input">
+                
+                <input *ngSwitchCase="'NUMERO'" type="number" [(ngModel)]="campo.valor" class="minimal-input">
+                
+                <input *ngSwitchDefault type="text" [(ngModel)]="campo.valor" class="minimal-input">
+              </ng-container>
             </div>
             
             <div class="report-area">

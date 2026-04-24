@@ -7,9 +7,10 @@ import org.flowable.bpmn.model.*;
 import org.flowable.bpmn.model.Process;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
-import org.flowable.engine.repository.Deployment;
+import org.flowable.engine.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Map;
 
 @Service
 public class WorkflowEngineService {
@@ -20,6 +21,9 @@ public class WorkflowEngineService {
     @Autowired
     private RuntimeService runtimeService;
 
+    @Autowired
+    private TaskService taskService;
+
     public void deployPolitica(PoliticaDeNegocio politica) {
         BpmnModel model = new BpmnModel();
         Process process = new Process();
@@ -27,34 +31,31 @@ public class WorkflowEngineService {
         process.setName(politica.getNombre());
         model.addProcess(process);
 
-        // Convertir nodos de Mongo a elementos BPMN
         for (Nodo nodo : politica.getNodos()) {
-            if ("START".equals(nodo.getTipo())) {
+            if (nodo.getTipo() == Nodo.TipoNodo.START || nodo.getTipo() == Nodo.TipoNodo.INICIO) {
                 StartEvent startEvent = new StartEvent();
                 startEvent.setId(nodo.getId());
                 process.addFlowElement(startEvent);
-            } else if ("END".equals(nodo.getTipo())) {
+            } else if (nodo.getTipo() == Nodo.TipoNodo.END || nodo.getTipo() == Nodo.TipoNodo.FIN) {
                 EndEvent endEvent = new EndEvent();
                 endEvent.setId(nodo.getId());
                 process.addFlowElement(endEvent);
-            } else if ("ACTIVITY".equals(nodo.getTipo())) {
+            } else if (nodo.getTipo() == Nodo.TipoNodo.ACTIVITY || nodo.getTipo() == Nodo.TipoNodo.ACTIVIDAD) {
                 UserTask userTask = new UserTask();
                 userTask.setId(nodo.getId());
                 userTask.setName(nodo.getNombre());
-                userTask.setAssignee("${funcionario}"); // Placeholder
                 process.addFlowElement(userTask);
-            } else if ("DECISION".equals(nodo.getTipo())) {
+            } else if (nodo.getTipo() == Nodo.TipoNodo.DECISION) {
                 ExclusiveGateway gateway = new ExclusiveGateway();
                 gateway.setId(nodo.getId());
                 process.addFlowElement(gateway);
-            } else if ("FORK".equals(nodo.getTipo()) || "JOIN".equals(nodo.getTipo())) {
+            } else if (nodo.getTipo() == Nodo.TipoNodo.FORK || nodo.getTipo() == Nodo.TipoNodo.JOIN) {
                 ParallelGateway gateway = new ParallelGateway();
                 gateway.setId(nodo.getId());
                 process.addFlowElement(gateway);
             }
         }
 
-        // Convertir conexiones
         for (Conexion conexion : politica.getConexiones()) {
             SequenceFlow flow = new SequenceFlow();
             flow.setId("flow_" + conexion.getId());
@@ -74,5 +75,21 @@ public class WorkflowEngineService {
 
     public void iniciarTramite(String politicaId, String tramiteId) {
         runtimeService.startProcessInstanceByKey("process_" + politicaId, tramiteId);
+    }
+
+    public void completarTarea(String tramiteId, Map<String, Object> variables) {
+        org.flowable.task.api.Task task = taskService.createTaskQuery()
+                .processInstanceBusinessKey(tramiteId)
+                .singleResult();
+        if (task != null) {
+            taskService.complete(task.getId(), variables);
+        }
+    }
+
+    public String getNodoActual(String tramiteId) {
+        org.flowable.task.api.Task task = taskService.createTaskQuery()
+                .processInstanceBusinessKey(tramiteId)
+                .singleResult();
+        return task != null ? task.getTaskDefinitionKey() : "FIN";
     }
 }

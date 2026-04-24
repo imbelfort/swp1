@@ -14,6 +14,9 @@ public class PoliticaController {
     @Autowired
     private PoliticaRepository politicaRepository;
 
+    @Autowired
+    private com.swp1.backend.service.WorkflowEngineService workflowEngineService;
+
     @GetMapping
     public List<PoliticaDeNegocio> getAll() {
         return politicaRepository.findAll();
@@ -21,7 +24,9 @@ public class PoliticaController {
 
     @PostMapping
     public PoliticaDeNegocio save(@RequestBody PoliticaDeNegocio politica) {
-        return politicaRepository.save(politica);
+        PoliticaDeNegocio saved = politicaRepository.save(politica);
+        workflowEngineService.deployPolitica(saved);
+        return saved;
     }
 
     @GetMapping("/{id}")

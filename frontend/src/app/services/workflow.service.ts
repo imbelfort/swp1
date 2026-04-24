@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 
 export interface Nodo {
   id: string;
-  tipo: 'START' | 'ACTIVITY' | 'DECISION' | 'FORK' | 'JOIN' | 'END';
+  tipo: 'START' | 'ACTIVITY' | 'DECISION' | 'FORK' | 'JOIN' | 'END' | 'INICIO' | 'ACTIVIDAD' | 'FIN';
   nombre: string;
   departamentoId?: string;
   campos?: any[];
