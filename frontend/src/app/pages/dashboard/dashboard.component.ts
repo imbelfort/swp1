@@ -1,61 +1,64 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { WorkflowService } from '../../services/workflow.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard">
       <header>
-        <h1>Monitor de Trámites</h1>
-        <p>Resumen de actividad en tiempo real</p>
+        <h1>Bienvenido, {{ auth.currentUser()?.username }}</h1>
+        <p>Panel de control del sistema de gestión de trámites</p>
       </header>
       
       <div class="stats-grid">
         <div class="stat-card glass-card">
-          <span class="label">Pendientes</span>
-          <span class="value color-red">12</span>
+          <span class="label">Políticas Creadas</span>
+          <span class="value color-blue">{{ policies.length }}</span>
         </div>
         <div class="stat-card glass-card">
-          <span class="label">En Proceso</span>
-          <span class="value color-yellow">5</span>
+          <span class="label">Trámites Activos</span>
+          <span class="value color-yellow">{{ tramites.length }}</span>
         </div>
         <div class="stat-card glass-card">
-          <span class="label">Atendidos</span>
-          <span class="value color-green">48</span>
+          <span class="label">Completados</span>
+          <span class="value color-green">14</span>
         </div>
       </div>
       
-      <div class="main-content glass-card">
-        <h3>Trámites Recientes</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Política</th>
-              <th>Cliente</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#TR-001</td>
-              <td>Instalación Medidor</td>
-              <td>Juan Pérez</td>
-              <td><span class="badge yellow">En Proceso</span></td>
-              <td><button class="btn-text">Ver detalle</button></td>
-            </tr>
-            <tr>
-              <td>#TR-002</td>
-              <td>Cambio Titular</td>
-              <td>Maria Garcia</td>
-              <td><span class="badge green">Atendido</span></td>
-              <td><button class="btn-text">Ver detalle</button></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="sections-grid">
+        <!-- Listado de Políticas (Para iniciar trámites) -->
+        <div class="main-content glass-card">
+          <h3>📜 Políticas Disponibles</h3>
+          <p class="section-desc">Selecciona una política para iniciar un nuevo trámite</p>
+          
+          <div class="policies-grid">
+            <div *ngFor="let p of policies" class="policy-card glass-card animate-pop">
+              <h4>{{ p.nombre }}</h4>
+              <p>{{ p.nodos?.length || 0 }} etapas definidas</p>
+              <button class="btn-primary btn-small" (click)="iniciar(p)">Iniciar Trámite</button>
+            </div>
+            <div *ngIf="policies.length === 0" class="empty-state">
+              No hay políticas diseñadas aún. Ve al Diseñador para crear la primera.
+            </div>
+          </div>
+        </div>
+
+        <!-- Trámites Recientes -->
+        <div class="side-content glass-card">
+          <h3>⏳ Trámites en Ejecución</h3>
+          <div class="mini-list">
+            <div *ngFor="let t of tramites" class="mini-item">
+              <span class="id">#{{ t.id }}</span>
+              <span class="client">{{ t.cliente }}</span>
+              <span class="status">{{ t.estado }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -69,14 +72,8 @@ import { CommonModule } from '@angular/common';
       overflow-y: auto;
     }
     
-    header h1 {
-      font-size: 2rem;
-      margin-bottom: 4px;
-    }
-    
-    header p {
-      color: var(--text-muted);
-    }
+    header h1 { font-size: 2rem; margin-bottom: 4px; }
+    header p { color: var(--text-muted); }
     
     .stats-grid {
       display: grid;
@@ -84,69 +81,79 @@ import { CommonModule } from '@angular/common';
       gap: 24px;
     }
     
-    .stat-card {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .stat-card { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .stat-card .label { color: var(--text-muted); font-size: 0.875rem; }
+    .stat-card .value { font-size: 2.5rem; font-weight: 700; }
     
-    .stat-card .label {
-      color: var(--text-muted);
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-    
-    .stat-card .value {
-      font-size: 2.5rem;
-      font-weight: 700;
-    }
-    
-    .color-red { color: var(--status-red); }
+    .color-blue { color: var(--primary); }
     .color-yellow { color: var(--status-yellow); }
     .color-green { color: var(--status-green); }
-    
-    .main-content {
-      padding: 24px;
-      flex: 1;
+
+    .sections-grid {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 24px;
     }
     
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 24px;
-    }
+    .main-content, .side-content { padding: 24px; }
     
-    .data-table th {
-      text-align: left;
+    .section-desc { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 24px; }
+
+    .policies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .policy-card {
+      padding: 20px;
+      border: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .policy-card h4 { margin: 0; color: var(--primary); }
+    .policy-card p { font-size: 0.813rem; color: var(--text-muted); }
+
+    .mini-list { display: flex; flex-direction: column; gap: 12px; }
+    .mini-item {
       padding: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-      border-bottom: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.813rem;
     }
-    
-    .data-table td {
-      padding: 16px 12px;
-      border-bottom: 1px solid var(--glass-border);
-    }
-    
-    .badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .badge.yellow { background: rgba(234, 179, 8, 0.2); color: var(--status-yellow); }
-    .badge.green { background: rgba(34, 197, 94, 0.2); color: var(--status-green); }
-    
-    .btn-text {
-      background: none;
-      border: none;
-      color: var(--primary);
-      cursor: pointer;
-      font-weight: 500;
-    }
+    .mini-item .id { color: var(--accent); font-weight: 600; }
+
+    .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   `]
 })
-export class DashboardComponent {}
+export class DashboardComponent implements OnInit {
+  public auth = inject(AuthService);
+  private workflowService = inject(WorkflowService);
+
+  policies: any[] = [];
+  tramites: any[] = [];
+
+  ngOnInit() {
+    this.loadData();
+  }
+
+  loadData() {
+    this.workflowService.getPolicies().subscribe(data => this.policies = data);
+    this.workflowService.getTramites().subscribe(data => this.tramites = data);
+  }
+
+  iniciar(policy: any) {
+    const cliente = prompt('Nombre del cliente para el trámite:');
+    if (cliente) {
+      this.workflowService.iniciarTramite(policy.id, cliente).subscribe(res => {
+        alert('Trámite iniciado con éxito!');
+        this.loadData();
+      });
+    }
+  }
+}

@@ -47,6 +47,10 @@ public class WorkflowEngineService {
                 ExclusiveGateway gateway = new ExclusiveGateway();
                 gateway.setId(nodo.getId());
                 process.addFlowElement(gateway);
+            } else if ("FORK".equals(nodo.getTipo()) || "JOIN".equals(nodo.getTipo())) {
+                ParallelGateway gateway = new ParallelGateway();
+                gateway.setId(nodo.getId());
+                process.addFlowElement(gateway);
             }
         }
 

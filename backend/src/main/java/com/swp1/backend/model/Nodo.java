@@ -1,11 +1,14 @@
 package com.swp1.backend.model;
 
+import java.util.List;
+
 public class Nodo {
     private String id;
-    private String tipo; // START, ACTIVITY, DECISION, END
+    private String tipo; // START, ACTIVITY, DECISION, FORK, JOIN, END
     private String nombre;
     private String departamentoId;
-    private double x; // Para posicionamiento en el diseñador
+    private List<CampoFormulario> campos;
+    private double x;
     private double y;
 
     // Getters and Setters

@@ -2,12 +2,20 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 
-export interface WorkflowNode {
+export interface Nodo {
   id: string;
-  type: 'START' | 'ACTIVITY' | 'DECISION' | 'END';
-  name: string;
-  department?: string;
+  tipo: 'START' | 'ACTIVITY' | 'DECISION' | 'FORK' | 'JOIN' | 'END';
+  nombre: string;
+  departamentoId?: string;
+  campos?: any[];
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+}
+
+export interface Conexion {
+  id: string;
+  origenId: string;
+  destinoId: string;
+  condicion?: string;
 }
 
 @Injectable({
@@ -31,5 +39,9 @@ export class WorkflowService {
 
   iniciarTramite(politicaId: string, cliente: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/tramites/iniciar`, { politicaId, cliente });
+  }
+
+  completarActividad(tramiteId: string, nodoId: string, datos: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/tramites/${tramiteId}/completar`, { nodoId, datos });
   }
 }

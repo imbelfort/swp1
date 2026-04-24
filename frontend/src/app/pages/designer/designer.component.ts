@@ -1,134 +1,340 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { WorkflowService } from '../../services/workflow.service';
 
 @Component({
   selector: 'app-designer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="designer">
-      <header>
-        <h1>Diseñador de Políticas</h1>
-        <div class="actions">
-          <button class="btn-primary">Guardar Política</button>
+    <div class="designer-container">
+      <header class="top-bar">
+        <div class="title-section">
+          <h1>Diseñador de Flujos</h1>
+          <input [(ngModel)]="policyName" class="minimal-input" placeholder="Nombre de la política">
         </div>
+        <button class="btn-primary" (click)="savePolicy()">Guardar Política</button>
       </header>
       
-      <div class="canvas-container">
-        <aside class="sidebar-left glass-card">
-          <h3>Elementos</h3>
-          <div class="draggable-list">
-            <div class="drag-item"><i class="icon">⭕</i> Inicio</div>
-            <div class="drag-item"><i class="icon">⏹️</i> Actividad</div>
-            <div class="drag-item"><i class="icon">🔶</i> Decisión</div>
-            <div class="drag-item"><i class="icon">🏁</i> Fin</div>
+      <div class="workspace">
+        <aside class="toolbar glass-card">
+          <p class="toolbar-label">Componentes</p>
+          <div class="tool-buttons">
+            <button (click)="addNode('START')" class="tool-btn">⭕ Inicio</button>
+            <button (click)="addNode('ACTIVITY')" class="tool-btn">⏹️ Actividad</button>
+            <button (click)="addNode('DECISION')" class="tool-btn">🔶 Decisión</button>
+            <button (click)="addNode('FORK')" class="tool-btn">🔀 Fork</button>
+            <button (click)="addNode('JOIN')" class="tool-btn">🔗 Join</button>
+            <button (click)="addNode('END')" class="tool-btn">🏁 Fin</button>
           </div>
         </aside>
         
-        <div class="canvas glass-card">
-          <div class="placeholder">Área del Diagrama (Interactivo)</div>
-        </div>
-        
-        <aside class="sidebar-right glass-card">
-          <h3>Asistente IA</h3>
-          <div class="ia-chat">
-            <div class="message bot">
-              ¿Cómo puedo ayudarte con el diagrama hoy?
+        <div class="canvas">
+          <div class="nodes-flow">
+            <div *ngFor="let node of nodes; let i = index" class="node-wrapper">
+              <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVITY'">
+                <div class="node-header">
+                  <span class="type">{{ node.tipo }}</span>
+                  <button class="delete-btn" (click)="removeNode(node)">×</button>
+                </div>
+                
+                <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre...">
+                
+                <div *ngIf="node.tipo === 'ACTIVITY'" class="field-section">
+                  <select [(ngModel)]="node.departamentoId" class="minimal-select">
+                    <option value="1">Atención al Cliente</option>
+                    <option value="2">Técnico</option>
+                    <option value="3">Dirección</option>
+                  </select>
+                  
+                  <div class="fields-list">
+                    <div *ngFor="let field of node.campos" class="field-tag">
+                      {{ field.etiqueta }}
+                    </div>
+                  </div>
+                  <button class="add-field-btn" (click)="addField(node)">+ Campo</button>
+                </div>
+              </div>
+              
+              <div class="connector" *ngIf="i < nodes.length - 1">
+                <div class="line"></div>
+                <div class="arrow">▼</div>
+              </div>
+            </div>
+            
+            <div *ngIf="nodes.length === 0" class="empty-canvas">
+              Utiliza la barra lateral para añadir elementos al flujo
             </div>
           </div>
-          <div class="ia-input">
-            <textarea placeholder="Ej: Agrega una actividad de aprobación después de revisar..."></textarea>
-            <button class="btn-primary">Enviar</button>
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .designer {
-      padding: 32px;
+    .designer-container {
+      height: 100%;
       display: flex;
       flex-direction: column;
-      gap: 24px;
-      height: 100%;
+      background: #f8fafc;
     }
-    
-    header {
+
+    .top-bar {
+      padding: 16px 32px;
+      background: white;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    
-    .canvas-container {
-      display: flex;
-      gap: 24px;
+
+    .title-section h1 {
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+    }
+
+    .minimal-input {
+      border: none;
+      border-bottom: 1px solid transparent;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      width: 250px;
+      padding: 2px 0;
+    }
+
+    .minimal-input:focus {
+      outline: none;
+      border-bottom-color: var(--primary);
+      color: var(--text-main);
+    }
+
+    .workspace {
       flex: 1;
+      display: flex;
+      padding: 24px;
+      gap: 24px;
       overflow: hidden;
     }
-    
-    .sidebar-left, .sidebar-right {
-      width: 280px;
-      padding: 20px;
+
+    .toolbar {
+      width: 200px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
+      height: fit-content;
     }
-    
+
+    .toolbar-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .tool-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      text-align: left;
+      padding: 10px;
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .tool-btn:hover {
+      background: #f1f5f9;
+      border-color: var(--primary);
+    }
+
     .canvas {
       flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.2);
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow-y: auto;
+      padding: 48px;
     }
-    
-    .draggable-list {
+
+    .nodes-flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .node-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .node-box {
+      width: 100%;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      border-radius: 6px;
     }
-    
-    .drag-item {
-      padding: 12px;
-      background: var(--bg-dark);
-      border: 1px solid var(--glass-border);
-      border-radius: 8px;
-      cursor: grab;
-      transition: background 0.2s;
+
+    .node-box.activity {
+      border-left: 4px solid var(--primary);
     }
-    
-    .drag-item:hover {
-      background: var(--glass);
+
+    .node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    
-    .ia-chat {
-      flex: 1;
-      overflow-y: auto;
+
+    .type {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
     }
-    
-    .message {
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      background: var(--glass);
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .delete-btn:hover { color: #ef4444; }
+
+    .node-name-input {
+      border: none;
+      font-size: 0.938rem;
+      font-weight: 500;
+      width: 100%;
+    }
+
+    .node-name-input:focus { outline: none; color: var(--primary); }
+
+    .field-section {
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .minimal-select {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 0.813rem;
+    }
+
+    .fields-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .field-tag {
+      font-size: 0.75rem;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 12px;
       color: var(--text-muted);
     }
-    
-    .ia-input {
+
+    .add-field-btn {
+      background: none;
+      border: 1px dashed var(--border-color);
+      color: var(--primary);
+      padding: 4px;
+      font-size: 0.75rem;
+    }
+
+    .connector {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      height: 40px;
     }
-    
-    textarea {
-      background: var(--bg-dark);
-      border: 1px solid var(--glass-border);
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      resize: none;
-      height: 100px;
+
+    .line {
+      width: 1px;
+      height: 100%;
+      background: var(--border-color);
+    }
+
+    .arrow {
+      font-size: 0.6rem;
+      color: var(--border-color);
+      margin-top: -4px;
+    }
+
+    .empty-canvas {
+      margin-top: 100px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
     }
   `]
 })
-export class DesignerComponent {}
+export class DesignerComponent {
+  private workflowService = inject(WorkflowService);
+
+  policyName = 'Flujo de Negocio #1';
+  nodes: any[] = [];
+  conexiones: any[] = [];
+
+  addNode(tipo: string) {
+    const newNode = {
+      id: 'n' + (this.nodes.length + 1),
+      tipo,
+      nombre: tipo === 'START' ? 'Inicio' : tipo === 'END' ? 'Fin' : 'Nueva Etapa',
+      departamentoId: '1',
+      campos: []
+    };
+    this.nodes.push(newNode);
+    
+    if (this.nodes.length > 1) {
+      this.conexiones.push({
+        id: 'c' + this.conexiones.length,
+        origenId: this.nodes[this.nodes.length - 2].id,
+        destinoId: newNode.id
+      });
+    }
+  }
+
+  removeNode(node: any) {
+    this.nodes = this.nodes.filter(n => n.id !== node.id);
+    this.conexiones = this.conexiones.filter(c => c.origenId !== node.id && c.destinoId !== node.id);
+  }
+
+  addField(node: any) {
+    const label = prompt('Nombre del dato a capturar:');
+    if (label) {
+      if (!node.campos) node.campos = [];
+      node.campos.push({
+        nombre: label.toLowerCase().replace(/ /g, '_'),
+        etiqueta: label,
+        tipo: 'TEXTO'
+      });
+    }
+  }
+
+  savePolicy() {
+    const policy = {
+      nombre: this.policyName,
+      nodos: this.nodes,
+      conexiones: this.conexiones
+    };
+    this.workflowService.savePolicy(policy).subscribe(() => {
+      alert('Flujo guardado con éxito');
+    });
+  }
+}

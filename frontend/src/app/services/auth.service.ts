@@ -6,20 +6,24 @@ export type UserRole = 'ADMIN' | 'FUNCIONARIO' | null;
   providedIn: 'root'
 })
 export class AuthService {
-  private _currentUser = signal<{ username: string, role: UserRole } | null>(null);
+  private _currentUser = signal<{ username: string, role: UserRole } | null>(
+    JSON.parse(localStorage.getItem('user') || 'null')
+  );
   
   currentUser = this._currentUser.asReadonly();
 
   login(role: UserRole) {
-    if (role === 'ADMIN') {
-      this._currentUser.set({ username: 'Administrador', role: 'ADMIN' });
-    } else {
-      this._currentUser.set({ username: 'Funcionario 1', role: 'FUNCIONARIO' });
-    }
+    const user = role === 'ADMIN' 
+      ? { username: 'Administrador', role: 'ADMIN' } 
+      : { username: 'Funcionario 1', role: 'FUNCIONARIO' };
+    
+    this._currentUser.set(user as any);
+    localStorage.setItem('user', JSON.stringify(user));
   }
 
   logout() {
     this._currentUser.set(null);
+    localStorage.removeItem('user');
   }
 
   isAdmin() {

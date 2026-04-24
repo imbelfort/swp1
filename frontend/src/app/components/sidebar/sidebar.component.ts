@@ -9,159 +9,101 @@ import { AuthService } from '../../services/auth.service';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="sidebar" *ngIf="auth.isAuthenticated()">
-      <div class="logo">
-        <div class="logo-icon"></div>
-        <span>SWP1 Workflow</span>
+      <div class="brand">
+        <div class="dot"></div>
+        <span>SWP1</span>
       </div>
       
       <nav>
-        <a routerLink="/dashboard" routerLinkActive="active">
-          <i class="icon">📊</i> Dashboard
-        </a>
-        
-        <!-- Solo Admin -->
-        <a *ngIf="auth.isAdmin()" routerLink="/designer" routerLinkActive="active">
-          <i class="icon">🎨</i> Diseñador
-        </a>
-        
-        <!-- Solo Funcionario -->
-        <a *ngIf="auth.isFuncionario()" routerLink="/monitor" routerLinkActive="active">
-          <i class="icon">👁️</i> Monitor de Trámites
-        </a>
+        <a routerLink="/dashboard" routerLinkActive="active">📊 Dashboard</a>
+        <a *ngIf="auth.isAdmin()" routerLink="/designer" routerLinkActive="active">🎨 Diseñador</a>
+        <a *ngIf="auth.isFuncionario()" routerLink="/monitor" routerLinkActive="active">👁️ Monitor</a>
       </nav>
       
-      <div class="footer">
-        <div class="user-info">
-          <div class="avatar">{{ auth.currentUser()?.username?.[0] }}</div>
-          <div class="details">
-            <span class="name">{{ auth.currentUser()?.username }}</span>
-            <span class="role">{{ auth.currentUser()?.role }}</span>
-          </div>
+      <div class="user-profile">
+        <div class="user-meta">
+          <p class="name">{{ auth.currentUser()?.username }}</p>
+          <p class="role">{{ auth.currentUser()?.role }}</p>
         </div>
-        <button (click)="logout()" class="btn-logout">
-          <i>🚪</i> Cerrar Sesión
-        </button>
+        <button (click)="logout()" class="logout-btn">Cerrar Sesión</button>
       </div>
     </div>
   `,
   styles: [`
     .sidebar {
       width: var(--sidebar-width);
-      height: 100dvh;
-      background: var(--bg-sidebar);
-      border-right: 1px solid var(--glass-border);
+      height: 100vh;
+      background: #ffffff;
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      padding: 24px;
+      padding: 32px 16px;
     }
-    
-    .logo {
+
+    .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 1.25rem;
+      padding: 0 16px;
+      margin-bottom: 40px;
       font-weight: 700;
-      margin-bottom: 48px;
-      color: var(--primary);
+      font-size: 1.1rem;
     }
-    
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border-radius: 8px;
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
     }
-    
+
     nav {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
       flex: 1;
     }
-    
+
     nav a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
       padding: 12px 16px;
       text-decoration: none;
       color: var(--text-muted);
-      border-radius: 12px;
+      font-size: 0.875rem;
+      border-radius: 6px;
       transition: all 0.2s;
     }
-    
+
     nav a:hover {
-      background: var(--glass);
+      background: #f1f5f9;
       color: var(--text-main);
     }
-    
+
     nav a.active {
-      background: var(--primary-glow);
+      background: #eff6ff;
       color: var(--primary);
-      font-weight: 500;
+      font-weight: 600;
     }
-    
-    .footer {
-      margin-top: auto;
-      padding-top: 24px;
-      border-top: 1px solid var(--glass-border);
+
+    .user-profile {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 16px;
-    }
-    
-    .user-info {
-      display: flex;
-      align-items: center;
       gap: 12px;
     }
-    
-    .avatar {
-      width: 40px;
-      height: 40px;
-      background: var(--bg-card);
-      border: 1px solid var(--glass-border);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
 
-    .details {
-      display: flex;
-      flex-direction: column;
-    }
+    .name { font-size: 0.875rem; font-weight: 600; }
+    .role { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
 
-    .name {
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .role {
+    .logout-btn {
+      background: none;
+      border: 1px solid #fee2e2;
+      color: #ef4444;
+      padding: 6px;
       font-size: 0.75rem;
-      color: var(--text-muted);
     }
 
-    .btn-logout {
-      background: transparent;
-      border: 1px solid var(--glass-border);
-      color: var(--status-red);
-      padding: 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.813rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .btn-logout:hover {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: var(--status-red);
-    }
+    .logout-btn:hover { background: #fef2f2; }
   `]
 })
 export class SidebarComponent {
