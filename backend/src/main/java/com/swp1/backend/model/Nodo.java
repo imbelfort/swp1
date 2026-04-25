@@ -29,10 +29,6 @@ public class Nodo {
     public void setNombre(String nombre) { this.nombre = nombre; }
     public String getDepartamentoId() { return departamentoId; }
     public void setDepartamentoId(String departamentoId) { this.departamentoId = departamentoId; }
-    public List<CampoFormulario> getFields() { return campos; }
-    public void setFields(List<CampoFormulario> campos) { this.campos = campos; }
-    
-    // For backwards compatibility with the code I wrote earlier
     public List<CampoFormulario> getCampos() { return campos; }
     public void setCampos(List<CampoFormulario> campos) { this.campos = campos; }
 
