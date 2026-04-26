@@ -1,5 +1,6 @@
 package com.swp1.backend.controller;
 
+import com.swp1.backend.model.LogActividad;
 import com.swp1.backend.model.Tramite;
 import com.swp1.backend.repository.TramiteRepository;
 import com.swp1.backend.service.WorkflowEngineService;
@@ -64,12 +65,22 @@ public class TramiteController {
         workflowEngineService.completarTarea(id, variables);
 
         // Guardar en el historial
-        com.swp1.backend.model.LogActividad log = new com.swp1.backend.model.LogActividad();
+        LogActividad log = new LogActividad();
         log.setNodoId(nodoId);
         log.setNombreNodo(nombreNodo);
         log.setUsuario("Funcionario");
-        log.setFechaCompletado(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        log.setFechaCompletado(now);
         log.setInformeIA(informeIA);
+
+        long duracion = 0;
+        if (tramite.getHistorial() == null || tramite.getHistorial().isEmpty()) {
+            duracion = java.time.Duration.between(tramite.getFechaInicio(), now).toSeconds();
+        } else {
+            LogActividad anterior = tramite.getHistorial().get(tramite.getHistorial().size() - 1);
+            duracion = java.time.Duration.between(anterior.getFechaCompletado(), now).toSeconds();
+        }
+        log.setDuracionSegundos(duracion);
 
         List<com.swp1.backend.model.CampoFormulario> campos = new java.util.ArrayList<>();
         if(camposMap != null) {
@@ -78,7 +89,8 @@ public class TramiteController {
                 cf.setNombre((String) cmap.get("nombre"));
                 cf.setEtiqueta((String) cmap.get("etiqueta"));
                 cf.setTipo((String) cmap.get("tipo"));
-                cf.setValor((String) cmap.get("valor"));
+                Object valorObj = cmap.get("valor");
+                cf.setValor(valorObj != null ? String.valueOf(valorObj) : "");
                 campos.add(cf);
             }
         }

@@ -23,6 +23,7 @@ import { WorkflowService } from '../../services/workflow.service';
                 <th>ID</th>
                 <th>Cliente</th>
                 <th>Estado</th>
+                <th>Tiempo</th>
               </tr>
             </thead>
             <tbody>
@@ -33,13 +34,21 @@ import { WorkflowService } from '../../services/workflow.service';
                   <span class="status-dot" [class]="t.estado?.toLowerCase()"></span>
                   {{ t.estado }}
                 </td>
+                <td style="font-weight: 600; color: #475569;">{{ getTiempoTotalTramite(t) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Panel Lateral -->
+        <!-- Botón para ver detalles (Modal) -->
         <div class="form-panel glass-card animate-pop" *ngIf="selectedTramite">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px;">
+            <div>
+              <h4 style="margin: 0; color: var(--text-muted); font-size: 0.75rem;">TRÁMITE</h4>
+              <h3 style="margin: 2px 0 0 0; font-size: 1rem;">#{{ selectedTramite.id.substring(0,8) }}</h3>
+            </div>
+            <button class="btn-primary" (click)="openModal()" style="padding: 6px 12px; font-size: 0.75rem;">👁️ Ver Avance</button>
+          </div>
           
           <!-- Formulario de Acción (Si no ha finalizado) -->
           <ng-container *ngIf="selectedTramite.estado !== 'FINALIZADO' && currentNode">
@@ -63,6 +72,21 @@ import { WorkflowService } from '../../services/workflow.service';
                   
                   <input *ngSwitchDefault type="text" [(ngModel)]="campo.valor" class="minimal-input">
                 </ng-container>
+              </div>
+
+              <!-- Selector de Decisión / Outcome -->
+              <div class="form-field" *ngIf="getAvailableOutcomes().length > 0">
+                <label style="font-weight: 600; color: var(--primary);">Elegir Decisión / Ruta:</label>
+                <select [(ngModel)]="selectedOutcome" class="minimal-input" style="background: #f0fdf4; border: 1px solid #22c55e;">
+                  <option value="">-- Selecciona una opción --</option>
+                  <option *ngFor="let opt of getAvailableOutcomes()" [value]="opt">{{ opt }}</option>
+                </select>
+              </div>
+
+              <!-- Fallback: Escribir Decisión si no hay opciones cargadas -->
+              <div class="form-field">
+                <label style="font-weight: 600; color: #475569;">Escribir Decisión Manual (Si no salen opciones):</label>
+                <input [(ngModel)]="selectedOutcome" placeholder="Ej: SI / NO (Como lo configuraste en el lienzo)" class="minimal-input" style="border: 1px solid #cbd5e1;">
               </div>
               
               <div class="report-area">
@@ -110,8 +134,74 @@ import { WorkflowService } from '../../services/workflow.service';
 
         </div>
       </div>
+
+      <!-- Modal de Avance y Detalles -->
+      <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+        <div class="modal-content glass-card animate-pop" (click)="$event.stopPropagation()">
+          <header class="modal-header">
+            <h3>Trámite de {{ selectedTramite?.cliente }}</h3>
+            <button class="close-btn" (click)="closeModal()">×</button>
+          </header>
+
+          <div class="modal-body-scroll">
+            
+            <!-- Ruta del Proceso -->
+            <div class="modal-section">
+              <h4 class="section-title">Ruta del Trámite</h4>
+              <div class="flow-steps">
+                <div *ngFor="let node of policyNodes" class="flow-step" 
+                     [class.completed]="isNodeCompleted(node.id)"
+                     [class.current]="selectedTramite.nodoActualId === node.id">
+                  <div class="step-icon">
+                    <span *ngIf="node.tipo === 'INICIO'">⭕</span>
+                    <span *ngIf="node.tipo === 'ACTIVIDAD'">⏹️</span>
+                    <span *ngIf="node.tipo === 'DECISION'">🔶</span>
+                    <span *ngIf="node.tipo === 'FIN'">🏁</span>
+                  </div>
+                  <div class="step-info">
+                    <span class="step-name">{{ node.nombre }}</span>
+                    <span class="step-dept">{{ getDeptoName(node.departamentoId) }}</span>
+                    <span class="step-duration" *ngIf="isNodeCompleted(node.id)">⏱️ Tiempo: {{ getDuracionNodo(node.id) }}</span>
+                  </div>
+                  <span class="step-status">
+                    {{ isNodeCompleted(node.id) ? 'Completado' : (selectedTramite.nodoActualId === node.id ? 'En Proceso' : 'Pendiente') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Datos Llenados -->
+            <div class="modal-section mt-4">
+              <h4 class="section-title">Datos Registrados</h4>
+              <div *ngIf="!selectedTramite.historial || selectedTramite.historial.length === 0" class="empty-history">
+                No se han llenado datos todavía.
+              </div>
+              <div class="history-grid" *ngIf="selectedTramite.historial?.length">
+                <div *ngFor="let log of selectedTramite.historial" class="history-item">
+                  <div class="history-header">
+                    <h4>{{ log.nombreNodo }}</h4>
+                    <span class="date">{{ log.fechaCompletado | date:'dd/MM HH:mm' }}</span>
+                  </div>
+                  <div *ngIf="log.datosFormulario?.length" class="history-fields">
+                    <div *ngFor="let c of log.datosFormulario" class="hist-field">
+                      <span class="lbl">{{ c.etiqueta }}:</span> <span class="val">{{ c.valor || 'N/A' }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="log.informeIA" class="history-report">
+                    <span class="lbl">Informe:</span>
+                    <p>{{ log.informeIA }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   `,
+
   styles: [`
     .monitor-container { padding: 32px; height: 100%; display: flex; flex-direction: column; gap: 24px; }
     .page-header h1 { font-size: 1.5rem; }
@@ -141,6 +231,30 @@ import { WorkflowService } from '../../services/workflow.service';
     .panel-footer { padding: 24px; border-top: 1px solid var(--border-color); }
     .panel-footer .btn-primary { width: 100%; }
     
+    /* Modal Styles */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .modal-content { background: white; width: 650px; max-height: 85vh; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-main); }
+    .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1; }
+    .close-btn:hover { color: #ef4444; }
+    .modal-body-scroll { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+    .section-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 0 0 12px 0; letter-spacing: 0.05em; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+
+    /* Modal Process Tracker Steps */
+    .flow-steps { display: flex; flex-direction: column; gap: 12px; }
+    .flow-step { display: flex; align-items: center; gap: 16px; background: #f8fafc; border: 1px solid var(--border-color); padding: 10px 16px; border-radius: 8px; border-left: 4px solid #cbd5e1; }
+    .flow-step.completed { border-left-color: #22c55e; background: #f0fdf4; }
+    .flow-step.current { border-left-color: #eab308; background: #fefce8; }
+    .step-icon { font-size: 1.25rem; }
+    .step-info { display: flex; flex-direction: column; flex: 1; }
+    .step-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+    .step-dept { font-size: 0.75rem; color: var(--text-muted); }
+    .step-duration { font-size: 0.7rem; font-weight: 600; color: var(--primary); margin-top: 2px; }
+    .step-status { font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 12px; background: #e2e8f0; color: #64748b; }
+    .completed .step-status { background: #dcfce7; color: #166534; }
+    .current .step-status { background: #fef9c3; color: #713f12; }
+    
     /* History Styles */
     .history-item { background: #f8fafc; border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; border-left: 3px solid var(--primary); }
     .history-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -160,7 +274,19 @@ export class MonitorComponent implements OnInit {
   tramites: any[] = [];
   selectedTramite: any = null;
   currentNode: any = null;
+  policyNodes: any[] = [];
+  policyConnections: any[] = [];
+  selectedOutcome: string = '';
   iaReport: string = '';
+  showModal: boolean = false;
+
+  openModal() {
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+  }
 
   ngOnInit() { this.loadTramites(); }
 
@@ -180,20 +306,81 @@ export class MonitorComponent implements OnInit {
   seleccionarTramite(t: any) {
     this.selectedTramite = t;
     this.iaReport = '';
+    this.policyNodes = [];
     
-    if (t.estado !== 'FINALIZADO') {
-      this.workflowService.getPolicies().subscribe(policies => {
-        const p = policies.find(pol => pol.id === t.politicaId);
-        this.currentNode = p?.nodos.find((n: any) => n.id === t.nodoActualId);
-      });
-    } else {
-      this.currentNode = null;
-    }
+    this.workflowService.getPolicies().subscribe(policies => {
+      const p = policies.find(pol => pol.id === t.politicaId);
+      this.policyNodes = p?.nodos || [];
+      this.policyConnections = p?.conexiones || [];
+      this.selectedOutcome = '';
+      
+      if (t.estado !== 'FINALIZADO') {
+        this.currentNode = this.policyNodes.find((n: any) => n.id === t.nodoActualId);
+      } else {
+        this.currentNode = null;
+      }
+    });
   }
 
   getDeptoName(id: string): string {
     const deptos: any = { '1': 'Atención al Cliente', '2': 'Técnico', '3': 'Dirección' };
     return deptos[id] || 'General';
+  }
+
+  isNodeCompleted(nodeId: string): boolean {
+    if (!this.selectedTramite || !this.selectedTramite.historial) return false;
+    return this.selectedTramite.historial.some((h: any) => h.nodoId === nodeId);
+  }
+
+  getDuracionNodo(nodeId: string): string {
+    if (!this.selectedTramite || !this.selectedTramite.historial) return '';
+    const log = this.selectedTramite.historial.find((h: any) => h.nodoId === nodeId);
+    if (!log || log.duracionSegundos == null) return '';
+    
+    const seg = log.duracionSegundos;
+    if (seg < 60) return seg + ' seg';
+    const min = Math.floor(seg / 60);
+    if (min < 60) return min + ' min';
+    const hrs = Math.floor(min / 60);
+    return hrs + ' hrs';
+  }
+
+  getTiempoTotalTramite(t: any): string {
+    if (!t.fechaInicio) return 'N/A';
+    const start = new Date(t.fechaInicio).getTime();
+    
+    let end: number;
+    if (t.estado === 'FINALIZADO' && t.historial && t.historial.length > 0) {
+      const ultimoLog = t.historial[t.historial.length - 1];
+      end = new Date(ultimoLog.fechaCompletado).getTime();
+    } else {
+      end = new Date().getTime();
+    }
+    
+    const diffSecs = Math.floor((end - start) / 1000);
+    if (diffSecs < 60) return diffSecs + ' seg';
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return diffMins + ' min';
+    const diffHrs = Math.floor(diffMins / 60);
+    const remainingMins = diffMins % 60;
+    return diffHrs + ' h ' + remainingMins + ' m';
+  }
+
+  getAvailableOutcomes(): string[] {
+    if (!this.currentNode || !this.policyConnections) return [];
+    
+    // 1. Ver si este nodo se conecta directamente a un nodo DECISION
+    const decisionNodes = this.policyNodes.filter(n => n.tipo === 'DECISION');
+    const connToDecision = this.policyConnections.find(c => c.origenId === this.currentNode.id && decisionNodes.some(dn => dn.id === c.destinoId));
+    
+    let sourceNodeId = this.currentNode.id;
+    if (connToDecision) {
+      sourceNodeId = connToDecision.destinoId;
+    }
+    
+    // 2. Buscar conexiones que salgan de sourceNodeId
+    const outgoing = this.policyConnections.filter(c => c.origenId === sourceNodeId && c.condicion && c.condicion !== 'DEFAULT');
+    return outgoing.map(c => c.condicion);
   }
 
   completar() {
@@ -202,6 +389,10 @@ export class MonitorComponent implements OnInit {
       return acc;
     }, {}) : {};
 
+    if (this.selectedOutcome) {
+      variables['outcome'] = this.selectedOutcome;
+    }
+
     const extraData = {
       variables: variables,
       nombreNodo: this.currentNode.nombre,
@@ -209,9 +400,14 @@ export class MonitorComponent implements OnInit {
       informeIA: this.iaReport
     };
 
-    this.workflowService.completarActividad(this.selectedTramite.id, this.currentNode.id, extraData).subscribe(() => {
-      alert('Tarea completada');
-      this.loadTramites();
+    this.workflowService.completarActividad(this.selectedTramite.id, this.currentNode.id, extraData).subscribe({
+      next: () => {
+        alert('¡Etapa completada con éxito!');
+        this.loadTramites();
+      },
+      error: (err) => {
+        alert('No se pudo avanzar de etapa. Requisitos: Escribe la Decisión exacta (Ej: SI o NO) configurada en tu lienzo para que Flowable sepa por cuál camino ir.');
+      }
     });
   }
 }

@@ -19,6 +19,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/designer/designer.component').then(m => m.DesignerComponent)
   },
   {
+    path: 'designer/:id',
+    loadComponent: () => import('./pages/designer/designer.component').then(m => m.DesignerComponent)
+  },
+  {
     path: 'monitor',
     loadComponent: () => import('./pages/monitor/monitor.component').then(m => m.MonitorComponent)
   }

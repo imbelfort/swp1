@@ -48,7 +48,7 @@ public class GroqIntegrationService {
             Map<String, Object> messageUser = Map.of("role", "user", "content", userPrompt);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "llama3-70b-8192");
+            requestBody.put("model", "openai/gpt-oss-120b");
             requestBody.put("messages", List.of(messageSystem, messageUser));
             requestBody.put("response_format", Map.of("type", "json_object"));
 

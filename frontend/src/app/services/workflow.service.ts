@@ -29,6 +29,10 @@ export class WorkflowService {
     return this.http.get<any[]>(`${this.apiUrl}/politicas`);
   }
 
+  getPolicyById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/politicas/${id}`);
+  }
+
   savePolicy(policy: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/politicas`, policy);
   }

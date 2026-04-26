@@ -10,8 +10,12 @@ public class LogActividad {
     private LocalDateTime fechaCompletado;
     private List<CampoFormulario> datosFormulario;
     private String informeIA;
+    private Long duracionSegundos;
 
     // Getters and Setters
+    public Long getDuracionSegundos() { return duracionSegundos; }
+    public void setDuracionSegundos(Long duracionSegundos) { this.duracionSegundos = duracionSegundos; }
+    
     public String getNodoId() { return nodoId; }
     public void setNodoId(String nodoId) { this.nodoId = nodoId; }
     public String getNombreNodo() { return nombreNodo; }

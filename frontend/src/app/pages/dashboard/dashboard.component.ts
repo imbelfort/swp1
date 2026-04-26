@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkflowService } from '../../services/workflow.service';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
@@ -40,7 +41,10 @@ import { AuthService } from '../../services/auth.service';
             <div *ngFor="let p of policies" class="policy-card glass-card animate-pop">
               <h4>{{ p.nombre }}</h4>
               <p>{{ p.nodos?.length || 0 }} etapas definidas</p>
-              <button class="btn-primary btn-small" (click)="iniciar(p)">Iniciar Trámite</button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-primary btn-small" (click)="iniciar(p)" style="flex: 1;">Iniciar</button>
+                <button class="btn-primary btn-small" *ngIf="auth.isAdmin()" (click)="editar(p)" style="background: #e2e8f0; color: #1e293b;">Editar</button>
+              </div>
             </div>
             <div *ngIf="policies.length === 0" class="empty-state">
               No hay políticas diseñadas aún. Ve al Diseñador para crear la primera.
@@ -134,6 +138,7 @@ import { AuthService } from '../../services/auth.service';
 export class DashboardComponent implements OnInit {
   public auth = inject(AuthService);
   private workflowService = inject(WorkflowService);
+  private router = inject(Router);
 
   policies: any[] = [];
   tramites: any[] = [];
@@ -155,5 +160,9 @@ export class DashboardComponent implements OnInit {
         this.loadData();
       });
     }
+  }
+
+  editar(policy: any) {
+    this.router.navigate(['/designer', policy.id]);
   }
 }

@@ -23,10 +23,16 @@ public class PoliticaController {
     }
 
     @PostMapping
-    public PoliticaDeNegocio save(@RequestBody PoliticaDeNegocio politica) {
-        PoliticaDeNegocio saved = politicaRepository.save(politica);
-        workflowEngineService.deployPolitica(saved);
-        return saved;
+    public org.springframework.http.ResponseEntity<?> save(@RequestBody PoliticaDeNegocio politica) {
+        try {
+            PoliticaDeNegocio saved = politicaRepository.save(politica);
+            workflowEngineService.deployPolitica(saved);
+            return org.springframework.http.ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("error", "Error al guardar/desplegar el flujo: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")

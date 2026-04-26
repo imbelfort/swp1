@@ -1,4 +1,5 @@
-import { Component, inject, AfterViewChecked, HostListener } from '@angular/core';
+import { Component, inject, AfterViewChecked, HostListener, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkflowService } from '../../services/workflow.service';
@@ -51,6 +52,16 @@ import { WorkflowService } from '../../services/workflow.service';
               </div>
             </div>
           </div>
+          <p class="toolbar-label mt-4">Condiciones</p>
+          <div class="connections-manager" style="max-height: 150px; overflow-y: auto;">
+            <small style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 4px; display: block;">Asigna el resultado (Ej: Si / No)</small>
+            <div *ngFor="let conn of conexiones" class="dept-item" style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin-bottom: 6px;">
+              <div style="font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ getNodeName(conn.origenId) }} ➔ {{ getNodeName(conn.destinoId) }}
+              </div>
+              <input [(ngModel)]="conn.condicion" placeholder="Ej: Aprobado..." class="minimal-input" style="font-size: 0.75rem; border-bottom: 1px solid var(--border-color); padding: 2px; width: 100%;">
+            </div>
+          </div>
         </aside>
         
         <!-- Swimlanes Canvas -->
@@ -64,7 +75,8 @@ import { WorkflowService } from '../../services/workflow.service';
                   <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
                 </marker>
               </defs>
-              <path *ngFor="let path of svgPaths" [attr.d]="path" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+              <path *ngFor="let p of svgPaths" [attr.d]="p.d" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+              <text *ngFor="let p of svgPaths" [attr.x]="p.x" [attr.y]="p.y - 10" fill="#2563eb" font-size="11" font-weight="700" text-anchor="middle" style="background: white; paint-order: stroke; stroke: white; stroke-width: 4px;">{{ p.condicion }}</text>
             </svg>
 
             <!-- Columns per Department -->
@@ -87,10 +99,13 @@ import { WorkflowService } from '../../services/workflow.service';
                     
                     <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre..." (ngModelChange)="scheduleRedraw()">
                     
-                    <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
-                      <select [(ngModel)]="node.departamentoId" class="minimal-select" (ngModelChange)="scheduleRedraw()">
+                    <div class="field-section">
+                      <select [(ngModel)]="node.departamentoId" class="minimal-select" (ngModelChange)="scheduleRedraw()" style="width: 100%; margin-bottom: 8px;">
                         <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
                       </select>
+                    </div>
+
+                    <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
                       
                       <div class="fields-list">
                         <div *ngFor="let field of node.campos" class="field-row">
@@ -112,6 +127,14 @@ import { WorkflowService } from '../../services/workflow.service';
                         </div>
                       </div>
                       <button class="add-field-btn" (click)="addField(node); scheduleRedraw()">+ Campo</button>
+                    <div *ngIf="node.tipo === 'DECISION'" class="field-section" style="border-top: 1px solid #cbd5e1; padding-top: 8px;">
+                      <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 6px;">RUTAS DE SALIDA:</small>
+                      <div *ngFor="let conn of getOutgoingConnections(node.id)" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 4px;">
+                          ➔ {{ getNodeName(conn.destinoId) }}
+                        </div>
+                        <input [(ngModel)]="conn.condicion" placeholder="Ej: Aprobado" class="minimal-input" style="font-size: 0.7rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--border-color);" (ngModelChange)="scheduleRedraw()">
+                      </div>
                     </div>
                   </div>
 
@@ -213,7 +236,7 @@ import { WorkflowService } from '../../services/workflow.service';
     .add-field-btn:hover { background: #eff6ff; }
     
     /* AI Panel Flotante */
-    .ai-panel { position: absolute; right: 48px; bottom: 48px; width: 320px; height: 450px; display: flex; flex-direction: column; z-index: 100; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; background: white; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .ai-panel { position: fixed; right: 48px; bottom: 48px; width: 320px; height: 450px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-radius: 12px; overflow: hidden; background: white; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .ai-panel.minimized { width: 56px; height: 56px; border-radius: 28px; padding: 0; background: linear-gradient(135deg, #1e1b4b, #312e81); cursor: pointer; justify-content: center; align-items: center; border: none; }
     .ai-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, #1e1b4b, #312e81); color: white; }
     .ai-header-title h3 { font-size: 0.9rem; margin: 0; font-weight: 600; }
@@ -240,9 +263,11 @@ import { WorkflowService } from '../../services/workflow.service';
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
   `]
 })
-export class DesignerComponent implements AfterViewChecked {
+export class DesignerComponent implements AfterViewChecked, OnInit {
   private workflowService = inject(WorkflowService);
+  private route = inject(ActivatedRoute);
 
+  policyId: string | null = null;
   policyName = 'Flujo de Préstamo Avanzado';
   
   // Calles / Departamentos simulados (Idealmente vendrían del backend)
@@ -257,7 +282,7 @@ export class DesignerComponent implements AfterViewChecked {
   nodes: any[] = [];
   conexiones: any[] = [];
   
-  svgPaths: string[] = [];
+  svgPaths: any[] = [];
   
   // Modo de conexión
   isConnecting = false;
@@ -271,6 +296,22 @@ export class DesignerComponent implements AfterViewChecked {
   ];
 
   private needsRedraw = false;
+
+  ngOnInit() {
+    this.route.paramMap.subscribe(params => {
+      this.policyId = params.get('id');
+      if (this.policyId) {
+        this.workflowService.getPolicyById(this.policyId).subscribe(policy => {
+          if (policy) {
+            this.policyName = policy.nombre || 'Flujo sin nombre';
+            this.nodes = policy.nodos || [];
+            this.conexiones = policy.conexiones || [];
+            this.scheduleRedraw();
+          }
+        });
+      }
+    });
+  }
 
   @HostListener('window:resize')
   onResize() {
@@ -320,6 +361,15 @@ export class DesignerComponent implements AfterViewChecked {
     this.scheduleRedraw();
   }
 
+  getNodeName(id: string): string {
+    const node = this.nodes.find(n => n.id === id);
+    return node ? node.nombre : 'Nodo';
+  }
+
+  getOutgoingConnections(nodeId: string): any[] {
+    return this.conexiones.filter(c => c.origenId === nodeId);
+  }
+
   addNode(tipo: string) {
     const backendTipo = tipo === 'START' ? 'INICIO' : 
                        tipo === 'ACTIVITY' ? 'ACTIVIDAD' : 
@@ -363,12 +413,12 @@ export class DesignerComponent implements AfterViewChecked {
         // Verificar si ya existe
         const exists = this.conexiones.some(c => c.origenId === this.connectionOrigin.id && c.destinoId === node.id);
         if (!exists) {
-          this.conexiones.push({
+          this.conexiones = [...this.conexiones, {
             id: 'c' + Date.now(),
             origenId: this.connectionOrigin.id,
             destinoId: node.id,
-            condicion: 'DEFAULT'
-          });
+            condicion: ''
+          }];
           this.scheduleRedraw();
         }
       }
@@ -403,7 +453,14 @@ export class DesignerComponent implements AfterViewChecked {
           // Curva Bezier para la flecha
           const offset = Math.abs(y2 - y1) / 2;
           const path = 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + (y1 + offset) + ', ' + x2 + ' ' + (y2 - offset) + ', ' + x2 + ' ' + (y2 - 10);
-          this.svgPaths.push(path);
+          
+          // Guardar objeto con metadata para texto
+          this.svgPaths.push({
+            d: path,
+            condicion: (conn.condicion && conn.condicion !== 'DEFAULT') ? conn.condicion : '',
+            x: (x1 + x2) / 2,
+            y: (y1 + y2) / 2
+          });
         }
       });
     }, 50); // Pequeño delay para asegurar que el DOM se actualizó
@@ -428,8 +485,18 @@ export class DesignerComponent implements AfterViewChecked {
   }
 
   savePolicy() {
-    const policy = { nombre: this.policyName, nodos: this.nodes, conexiones: this.conexiones };
-    this.workflowService.savePolicy(policy).subscribe(() => { alert('Flujo guardado con éxito'); });
+    const policy: any = { nombre: this.policyName, nodos: this.nodes, conexiones: this.conexiones };
+    if (this.policyId) {
+      policy.id = this.policyId;
+    }
+    this.workflowService.savePolicy(policy).subscribe({
+      next: () => { alert('Flujo guardado con éxito'); },
+      error: (err) => {
+        const msg = err.error?.error || err.message;
+        alert('Error al guardar el flujo: ' + msg);
+        console.error(err);
+      }
+    });
   }
 
   // --- AI Chat Logic ---

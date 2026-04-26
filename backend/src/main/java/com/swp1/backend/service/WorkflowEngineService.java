@@ -25,6 +25,9 @@ public class WorkflowEngineService {
     private TaskService taskService;
 
     public void deployPolitica(PoliticaDeNegocio politica) {
+        if (politica.getNodos() == null || politica.getNodos().isEmpty()) {
+            throw new RuntimeException("El flujo debe tener al menos una etapa para poder ser desplegado.");
+        }
         BpmnModel model = new BpmnModel();
         Process process = new Process();
         process.setId("process_" + politica.getId());
@@ -61,9 +64,28 @@ public class WorkflowEngineService {
             flow.setId("flow_" + conexion.getId());
             flow.setSourceRef(conexion.getOrigenId());
             flow.setTargetRef(conexion.getDestinoId());
+            
+            // Verificar si el origen es un nodo de decisión
+            boolean isFromDecision = politica.getNodos().stream()
+                .anyMatch(n -> n.getId().equals(conexion.getOrigenId()) && 
+                               (n.getTipo() == com.swp1.backend.model.Nodo.TipoNodo.DECISION));
+
             if (conexion.getCondicion() != null && !conexion.getCondicion().isEmpty()) {
                 flow.setConditionExpression("${outcome == '" + conexion.getCondicion() + "'}");
+            } else if (isFromDecision) {
+                org.flowable.bpmn.model.FlowElement element = process.getFlowElement(conexion.getOrigenId());
+                if (element instanceof ExclusiveGateway) {
+                    ExclusiveGateway gateway = (ExclusiveGateway) element;
+                    if (gateway.getDefaultFlow() == null) {
+                        gateway.setDefaultFlow(flow.getId());
+                    } else {
+                        flow.setConditionExpression("${outcome == 'AUTO_" + conexion.getId() + "'}");
+                    }
+                } else {
+                    flow.setConditionExpression("${outcome == 'AUTO_" + conexion.getId() + "'}");
+                }
             }
+            
             process.addFlowElement(flow);
         }
 
