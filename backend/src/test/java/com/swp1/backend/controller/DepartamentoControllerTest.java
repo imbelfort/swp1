@@ -34,7 +34,9 @@ public class DepartamentoControllerTest {
 
     @Test
     public void testGetAll() throws Exception {
-        Departamento d1 = new Departamento("TI", "Tech");
+        Departamento d1 = new Departamento();
+        d1.setNombre("TI");
+        d1.setDescripcion("Tech");
         when(departamentoRepository.findAll()).thenReturn(Arrays.asList(d1));
 
         mockMvc.perform(get("/api/departamentos"))

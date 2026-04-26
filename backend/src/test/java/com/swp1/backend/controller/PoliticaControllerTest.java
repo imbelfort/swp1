@@ -1,6 +1,6 @@
 package com.swp1.backend.controller;
 
-import com.swp1.backend.model.PoliticaNegocio;
+import com.swp1.backend.model.PoliticaDeNegocio;
 import com.swp1.backend.repository.PoliticaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,9 @@ public class PoliticaControllerTest {
 
     @Test
     public void testGetAll() throws Exception {
-        PoliticaNegocio p1 = new PoliticaNegocio("P1", "D1");
+        PoliticaDeNegocio p1 = new PoliticaDeNegocio();
+        p1.setNombre("P1");
+        p1.setDescripcion("D1");
         when(politicaRepository.findAll()).thenReturn(Arrays.asList(p1));
 
         mockMvc.perform(get("/api/politicas"))
@@ -46,7 +48,9 @@ public class PoliticaControllerTest {
 
     @Test
     public void testGetById() throws Exception {
-        PoliticaNegocio p1 = new PoliticaNegocio("P1", "D1");
+        PoliticaDeNegocio p1 = new PoliticaDeNegocio();
+        p1.setNombre("P1");
+        p1.setDescripcion("D1");
         p1.setId("id123");
         when(politicaRepository.findById("id123")).thenReturn(Optional.of(p1));
 
@@ -57,8 +61,10 @@ public class PoliticaControllerTest {
 
     @Test
     public void testCreate() throws Exception {
-        PoliticaNegocio p1 = new PoliticaNegocio("P1", "D1");
-        when(politicaRepository.save(any(PoliticaNegocio.class))).thenReturn(p1);
+        PoliticaDeNegocio p1 = new PoliticaDeNegocio();
+        p1.setNombre("P1");
+        p1.setDescripcion("D1");
+        when(politicaRepository.save(any(PoliticaDeNegocio.class))).thenReturn(p1);
 
         mockMvc.perform(post("/api/politicas")
                 .contentType(MediaType.APPLICATION_JSON)

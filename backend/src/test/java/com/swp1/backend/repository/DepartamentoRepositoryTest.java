@@ -17,7 +17,9 @@ public class DepartamentoRepositoryTest {
 
     @Test
     public void testPersistirYRecuperarDepartamento() {
-        Departamento dept = new Departamento("TI", "Departamento de Tecnología");
+        Departamento dept = new Departamento();
+        dept.setNombre("TI");
+        dept.setDescripcion("Departamento de Tecnología");
         
         Departamento guardado = departamentoRepository.save(dept);
         assertThat(guardado.getId()).isNotNull();

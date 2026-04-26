@@ -1,0 +1,4 @@
+com\swp1\backend\controller\DepartamentoControllerTest.class
+com\swp1\backend\repository\PoliticaRepositoryTest.class
+com\swp1\backend\repository\DepartamentoRepositoryTest.class
+com\swp1\backend\controller\PoliticaControllerTest.class

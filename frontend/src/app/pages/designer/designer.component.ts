@@ -334,6 +334,11 @@ export class DesignerComponent {
                        tipo === 'ACTIVITY' ? 'ACTIVIDAD' : 
                        tipo === 'END' ? 'FIN' : tipo;
                        
+    if (backendTipo === 'INICIO' && this.nodes.some(n => n.tipo === 'INICIO')) {
+      alert('Solo se permite un único nodo de Inicio por diagrama.');
+      return;
+    }
+
     const newNode = {
       id: 'n' + (this.nodes.length + 1),
       tipo: backendTipo,

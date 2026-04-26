@@ -1,8 +1,8 @@
 package com.swp1.backend.repository;
 
-import com.swp1.backend.model.Flujo;
+import com.swp1.backend.model.Conexion;
 import com.swp1.backend.model.Nodo;
-import com.swp1.backend.model.PoliticaNegocio;
+import com.swp1.backend.model.PoliticaDeNegocio;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,39 +24,43 @@ public class PoliticaRepositoryTest {
         inicio.setId("n1");
         inicio.setNombre("Inicio Proceso");
         inicio.setTipo(Nodo.TipoNodo.INICIO);
-        inicio.setPosicion(new Nodo.Posicion(100, 100));
+        inicio.setX(100);
+        inicio.setY(100);
 
         Nodo actividad = new Nodo();
         actividad.setId("n2");
         actividad.setNombre("Revisar Documentación");
         actividad.setTipo(Nodo.TipoNodo.ACTIVIDAD);
         actividad.setDepartamentoId("dept-legal");
-        actividad.setPosicion(new Nodo.Posicion(300, 100));
+        actividad.setX(300);
+        actividad.setY(100);
 
-        // 2. Crear Flujo
-        Flujo f1 = new Flujo();
-        f1.setId("f1");
-        f1.setOrigenId("n1");
-        f1.setDestinoId("n2");
-        f1.setCondicion("DEFAULT");
+        // 2. Crear Conexion
+        Conexion c1 = new Conexion();
+        c1.setId("c1");
+        c1.setOrigenId("n1");
+        c1.setDestinoId("n2");
+        c1.setCondicion("DEFAULT");
 
         // 3. Crear Política
-        PoliticaNegocio politica = new PoliticaNegocio("Politica de Prueba", "Descripción de prueba");
+        PoliticaDeNegocio politica = new PoliticaDeNegocio();
+        politica.setNombre("Politica de Prueba");
+        politica.setDescripcion("Descripción de prueba");
         politica.setNodos(Arrays.asList(inicio, actividad));
-        politica.setFlujos(Arrays.asList(f1));
+        politica.setConexiones(Arrays.asList(c1));
 
         // 4. Persistir
-        PoliticaNegocio guardada = politicaRepository.save(politica);
+        PoliticaDeNegocio guardada = politicaRepository.save(politica);
         assertThat(guardada.getId()).isNotNull();
 
         // 5. Recuperar
-        Optional<PoliticaNegocio> recuperadaOpt = politicaRepository.findById(guardada.getId());
+        Optional<PoliticaDeNegocio> recuperadaOpt = politicaRepository.findById(guardada.getId());
         assertThat(recuperadaOpt).isPresent();
         
-        PoliticaNegocio recuperada = recuperadaOpt.get();
+        PoliticaDeNegocio recuperada = recuperadaOpt.get();
         assertThat(recuperada.getNombre()).isEqualTo("Politica de Prueba");
         assertThat(recuperada.getNodos()).hasSize(2);
-        assertThat(recuperada.getFlujos()).hasSize(1);
-        assertThat(recuperada.getFlujos().get(0).getOrigenId()).isEqualTo("n1");
+        assertThat(recuperada.getConexiones()).hasSize(1);
+        assertThat(recuperada.getConexiones().get(0).getOrigenId()).isEqualTo("n1");
     }
 }
