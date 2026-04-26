@@ -44,4 +44,8 @@ export class WorkflowService {
   completarActividad(tramiteId: string, nodoId: string, datos: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/tramites/${tramiteId}/completar`, { nodoId, datos });
   }
+
+  sendAiCommand(prompt: string, currentState: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/ai/command`, { prompt, currentState });
+  }
 }

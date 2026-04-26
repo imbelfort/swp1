@@ -11,6 +11,7 @@ com\swp1\backend\controller\TramiteController.class
 com\swp1\backend\model\CampoFormulario.class
 com\swp1\backend\model\Nodo$TipoNodo.class
 com\swp1\backend\model\Departamento.class
+com\swp1\backend\service\GroqIntegrationService.class
 com\swp1\backend\controller\DepartamentoController.class
 com\swp1\backend\controller\FormularioController.class
 com\swp1\backend\model\PoliticaDeNegocio.class
@@ -21,5 +22,6 @@ com\swp1\backend\model\PoliticaNegocio.class
 com\swp1\backend\BackendApplication.class
 com\swp1\backend\model\Tramite.class
 com\swp1\backend\model\Conexion.class
+com\swp1\backend\controller\AiAssistantController.class
 com\swp1\backend\model\LogActividad.class
 com\swp1\backend\repository\TramiteRepository.class

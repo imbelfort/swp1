@@ -53,9 +53,41 @@ public class TramiteController {
     public Tramite completar(@PathVariable String id, @RequestBody Map<String, Object> payload) {
         Tramite tramite = tramiteRepository.findById(id).orElseThrow();
         
+        Map<String, Object> extraData = (Map<String, Object>) payload.get("datos");
+        Map<String, Object> variables = (Map<String, Object>) extraData.get("variables");
+        String nodoId = (String) payload.get("nodoId");
+        String nombreNodo = (String) extraData.get("nombreNodo");
+        String informeIA = (String) extraData.get("informeIA");
+        List<Map<String, Object>> camposMap = (List<Map<String, Object>>) extraData.get("campos");
+
         // Enviar datos al motor (variables de proceso)
-        Map<String, Object> variables = (Map<String, Object>) payload.get("datos");
         workflowEngineService.completarTarea(id, variables);
+
+        // Guardar en el historial
+        com.swp1.backend.model.LogActividad log = new com.swp1.backend.model.LogActividad();
+        log.setNodoId(nodoId);
+        log.setNombreNodo(nombreNodo);
+        log.setUsuario("Funcionario");
+        log.setFechaCompletado(LocalDateTime.now());
+        log.setInformeIA(informeIA);
+
+        List<com.swp1.backend.model.CampoFormulario> campos = new java.util.ArrayList<>();
+        if(camposMap != null) {
+            for(Map<String, Object> cmap : camposMap) {
+                com.swp1.backend.model.CampoFormulario cf = new com.swp1.backend.model.CampoFormulario();
+                cf.setNombre((String) cmap.get("nombre"));
+                cf.setEtiqueta((String) cmap.get("etiqueta"));
+                cf.setTipo((String) cmap.get("tipo"));
+                cf.setValor((String) cmap.get("valor"));
+                campos.add(cf);
+            }
+        }
+        log.setDatosFormulario(campos);
+
+        if(tramite.getHistorial() == null) {
+            tramite.setHistorial(new java.util.ArrayList<>());
+        }
+        tramite.getHistorial().add(log);
 
         // Actualizar el estado del trámite en Mongo
         String siguienteNodo = workflowEngineService.getNodoActual(id);
