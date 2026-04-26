@@ -1,8 +1,10 @@
-import { Component, inject, AfterViewChecked, HostListener, OnInit } from '@angular/core';
+import { Component, inject, AfterViewChecked, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkflowService } from '../../services/workflow.service';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 @Component({
   selector: 'app-designer',
@@ -12,8 +14,8 @@ import { WorkflowService } from '../../services/workflow.service';
     <div class="designer-container">
       <header class="top-bar">
         <div class="title-section">
-          <h1>Diseñador de Flujos (Swimlanes & IA)</h1>
-          <input [(ngModel)]="policyName" class="minimal-input" placeholder="Nombre de la política">
+          <h1>Diseñador de Flujos (Colaborativo & IA)</h1>
+          <input [(ngModel)]="policyName" class="minimal-input" placeholder="Nombre de la política" (ngModelChange)="scheduleRedraw(); broadcastState()">
         </div>
         <button class="btn-primary" (click)="savePolicy()">Guardar Política</button>
       </header>
@@ -263,7 +265,7 @@ import { WorkflowService } from '../../services/workflow.service';
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
   `]
 })
-export class DesignerComponent implements AfterViewChecked, OnInit {
+export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
   private workflowService = inject(WorkflowService);
   private route = inject(ActivatedRoute);
 
@@ -296,6 +298,10 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
   ];
 
   private needsRedraw = false;
+  
+  private stompClient?: Client;
+  mySessionId = 'session_' + Date.now() + Math.random().toString(36).substr(2, 9);
+  private isProcessingSync = false;
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -307,9 +313,61 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
             this.nodes = policy.nodos || [];
             this.conexiones = policy.conexiones || [];
             this.scheduleRedraw();
+            this.connectWebSocket();
           }
         });
       }
+    });
+  }
+
+  connectWebSocket() {
+    this.stompClient = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/ws-designer'),
+      debug: (str) => console.log(str),
+      reconnectDelay: 5000,
+    });
+
+    this.stompClient.onConnect = (frame) => {
+      console.log('Connected to WebSocket for Collaboration: ' + frame);
+      this.stompClient?.subscribe('/topic/policy/' + this.policyId, (message) => {
+        if (message.body) {
+          const state = JSON.parse(message.body);
+          if (state.senderId !== this.mySessionId) {
+            this.isProcessingSync = true;
+            this.nodes = state.nodos;
+            this.conexiones = state.conexiones;
+            if (state.departamentos) this.departamentos = state.departamentos;
+            this.policyName = state.nombre;
+            this.scheduleRedraw();
+            setTimeout(() => this.isProcessingSync = false, 100);
+          }
+        }
+      });
+    };
+
+    this.stompClient.activate();
+  }
+
+  ngOnDestroy() {
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+    }
+  }
+
+  broadcastState() {
+    if (this.isProcessingSync || !this.stompClient || !this.stompClient.connected) return;
+    
+    const state = {
+      senderId: this.mySessionId,
+      nodos: this.nodes,
+      conexiones: this.conexiones,
+      departamentos: this.departamentos,
+      nombre: this.policyName
+    };
+    
+    this.stompClient.publish({
+      destination: '/app/designer/sync/' + this.policyId,
+      body: JSON.stringify(state)
     });
   }
 
@@ -341,6 +399,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
     });
     this.newDeptName = '';
     this.scheduleRedraw();
+    this.broadcastState();
   }
 
   removeDepartamento(id: string) {
@@ -359,6 +418,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
     }
     this.departamentos = this.departamentos.filter(d => d.id !== id);
     this.scheduleRedraw();
+    this.broadcastState();
   }
 
   getNodeName(id: string): string {
@@ -389,12 +449,14 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
     };
     this.nodes.push(newNode);
     this.scheduleRedraw();
+    this.broadcastState();
   }
 
   removeNode(node: any) {
     this.nodes = this.nodes.filter(n => n.id !== node.id);
     this.conexiones = this.conexiones.filter(c => c.origenId !== node.id && c.destinoId !== node.id);
     this.scheduleRedraw();
+    this.broadcastState();
   }
 
   // Lógica de conexión manual
@@ -420,6 +482,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
             condicion: ''
           }];
           this.scheduleRedraw();
+          this.broadcastState();
         }
       }
       this.isConnecting = false;
@@ -470,10 +533,12 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
   addField(node: any) {
     if (!node.campos) node.campos = [];
     node.campos.push({ nombre: 'campo_' + Date.now(), etiqueta: 'Nuevo Campo', tipo: 'TEXTO', opciones: [] });
+    this.broadcastState();
   }
 
   removeField(node: any, field: any) {
     node.campos = node.campos.filter((f: any) => f !== field);
+    this.broadcastState();
   }
 
   addOpcion(field: any) {
@@ -481,6 +546,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
       if (!field.opciones) field.opciones = [];
       field.opciones.push(field.tempOpcion);
       field.tempOpcion = '';
+      this.broadcastState();
     }
   }
 
@@ -553,6 +619,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit {
             }
           });
           this.scheduleRedraw();
+          this.broadcastState();
         }
       },
       error: (err) => {

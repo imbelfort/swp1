@@ -9,11 +9,5 @@ services:
     volumes:
       - mongo_data:/data/db
 
-  ia-service:
-    build: ./ia-service
-    container_name: swp1-ia-service
-    ports:
-      - "8000:8000"
-
 volumes:
   mongo_data:
