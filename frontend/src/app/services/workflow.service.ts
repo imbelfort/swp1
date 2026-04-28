@@ -23,7 +23,7 @@ export interface Conexion {
 })
 export class WorkflowService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = `http://${window.location.hostname}:8080/api`;
 
   getPolicies(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/politicas`);
