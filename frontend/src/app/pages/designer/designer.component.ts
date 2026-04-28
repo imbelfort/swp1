@@ -106,16 +106,24 @@ import SockJS from 'sockjs-client';
                      [attr.id]="'node-' + node.id"
                      [class.selectable]="isConnecting"
                      [class.selected]="connectionOrigin?.id === node.id"
-                     (click)="onNodeClick(node)">
+                     (click)="onNodeClick(node)"
+                     style="position: relative;">
+                     
+                     <!-- Overlay de Co-edición -->
+                     <div *ngIf="getUsersEditingNode(node.id).length > 0" class="coediting-overlay" style="position: absolute; top: -10px; right: -10px; z-index: 50; display: flex; gap: 4px;">
+                       <div *ngFor="let u of getUsersEditingNode(node.id)" [style.background-color]="u.color" style="color: white; font-size: 0.65rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+                         ✏️ {{ u.username }}
+                       </div>
+                     </div>
                      
                   <ng-container *ngIf="node.tipo !== 'DECISION'">
-                    <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVIDAD'">
+                    <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVIDAD'" [style.border-color]="getUsersEditingNode(node.id).length > 0 ? getUsersEditingNode(node.id)[0].color : ''">
                       <div class="node-header">
                         <span class="type">{{ node.tipo }}</span>
                         <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
                       </div>
                       
-                      <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre..." (ngModelChange)="scheduleRedraw(); broadcastState()">
+                      <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre..." (ngModelChange)="scheduleRedraw(); broadcastState()" (focus)="publishPresence(node.id, 'nombre')" (blur)="publishPresence()" [style.outline]="isPropEditedByOther(node.id, 'nombre') ? '2px solid ' + getPropEditorColor(node.id, 'nombre') : ''">
                       
                       <div class="field-section">
                         <select [(ngModel)]="node.departamentoId" class="minimal-select" (ngModelChange)="scheduleRedraw(); broadcastState()" style="width: 100%; margin-bottom: 8px;">
@@ -126,8 +134,8 @@ import SockJS from 'sockjs-client';
                       <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
                         
                         <div class="fields-list">
-                          <div *ngFor="let field of node.campos" class="field-row">
-                            <input [(ngModel)]="field.etiqueta" class="minimal-input field-label" (ngModelChange)="broadcastState()">
+                          <div *ngFor="let field of node.campos; let fIdx = index" class="field-row">
+                            <input [(ngModel)]="field.etiqueta" class="minimal-input field-label" (ngModelChange)="broadcastState()" (focus)="publishPresence(node.id, 'field_' + fIdx)" (blur)="publishPresence()" [style.outline]="isPropEditedByOther(node.id, 'field_' + fIdx) ? '2px solid ' + getPropEditorColor(node.id, 'field_' + fIdx) : ''">
                             <select [(ngModel)]="field.tipo" class="minimal-select field-type" (ngModelChange)="scheduleRedraw(); broadcastState()">
                               <option value="TEXTO">Texto</option>
                               <option value="NUMERO">Número</option>
@@ -161,22 +169,22 @@ import SockJS from 'sockjs-client';
                         <div class="diamond-content">🔶</div>
                       </div>
                       
-                      <div class="decision-config glass-card">
-                        <div class="node-header">
-                          <span class="type">DECISIÓN</span>
-                          <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
-                        </div>
-                        
-                        <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Ej: ¿Aprobado?" (ngModelChange)="scheduleRedraw(); broadcastState()" style="text-align: center;">
+                        <div class="decision-config glass-card" [style.border-color]="getUsersEditingNode(node.id).length > 0 ? getUsersEditingNode(node.id)[0].color : ''">
+                          <div class="node-header">
+                            <span class="type">DECISIÓN</span>
+                            <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
+                          </div>
+                          
+                          <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Ej: ¿Aprobado?" (ngModelChange)="scheduleRedraw(); broadcastState()" style="text-align: center;" (focus)="publishPresence(node.id)" (blur)="publishPresence()">
                         
                         <div class="field-section" style="border-top: 1px solid #cbd5e1; padding-top: 8px;">
                           <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 2px;">BOTONES DE DECISIÓN PARA EL FUNCIONARIO:</small>
                           <small style="color: #64748b; font-size: 0.65rem; display: block; margin-bottom: 6px; line-height: 1.2;">Puedes dejar el nombre del destino, o escribir uno diferente para el botón.</small>
-                          <div *ngFor="let conn of getOutgoingConnections(node.id)" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                          <div *ngFor="let conn of getOutgoingConnections(node.id); let cIdx = index" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
                             <div style="font-size: 0.7rem; font-weight: 600; color: var(--primary); margin-bottom: 2px;">
                               ➔ Va hacia: {{ getNodeName(conn.destinoId) }}
                             </div>
-                            <input [(ngModel)]="conn.condicion" placeholder="Texto del botón" class="minimal-input" style="font-size: 0.75rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid #93c5fd; background: white; font-weight: 600;" (ngModelChange)="scheduleRedraw(); broadcastState()">
+                            <input [(ngModel)]="conn.condicion" placeholder="Texto del botón" class="minimal-input" style="font-size: 0.75rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid #93c5fd; background: white; font-weight: 600;" (ngModelChange)="scheduleRedraw(); broadcastState()" (focus)="publishPresence(node.id, 'conn_' + cIdx)" (blur)="publishPresence()" [style.outline]="isPropEditedByOther(node.id, 'conn_' + cIdx) ? '2px solid ' + getPropEditorColor(node.id, 'conn_' + cIdx) : ''">
                           </div>
                           <small *ngIf="getOutgoingConnections(node.id).length === 0" style="color: #f59e0b; font-size: 0.65rem;">Debes dibujar flechas desde este rombo hacia otras actividades para configurar las opciones.</small>
                         </div>
@@ -402,11 +410,9 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
         }
       });
       
-      const currentUser = this.authService.currentUser() || { username: 'Admin', color: '#6366f1' };
-      this.stompClient?.publish({
-        destination: '/app/designer/presence/join/' + this.policyId,
-        body: JSON.stringify({ username: currentUser.username, color: currentUser.color })
-      });
+      setTimeout(() => {
+        this.publishPresence();
+      }, 500);
 
       this.stompClient?.subscribe('/topic/policy/' + this.policyId, (message) => {
         if (message.body) {
@@ -426,6 +432,40 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
     };
 
     this.stompClient.activate();
+  }
+
+  publishPresence(editingNodeId: string | null = null, editingProp: string | null = null) {
+    if (!this.stompClient || !this.stompClient.connected) return;
+    
+    let currentUser = this.authService.currentUser();
+    const randomSuf = Math.floor(100 + Math.random() * 900);
+    const randomColors = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#ec4899'];
+    
+    const userToPublish = {
+      username: currentUser?.username || ('Admin-' + randomSuf),
+      color: currentUser?.color || randomColors[Math.floor(Math.random() * randomColors.length)],
+      editingNodeId: editingNodeId,
+      editingProp: editingProp,
+      sessionId: this.mySessionId
+    };
+    
+    this.stompClient.publish({
+      destination: '/app/designer/presence/join/' + this.policyId,
+      body: JSON.stringify(userToPublish)
+    });
+  }
+
+  isPropEditedByOther(nodeId: string, prop: string): boolean {
+    return this.connectedUsers.some(u => u.editingNodeId === nodeId && u.editingProp === prop && u.sessionId !== this.mySessionId);
+  }
+  
+  getPropEditorColor(nodeId: string, prop: string): string {
+    const user = this.connectedUsers.find(u => u.editingNodeId === nodeId && u.editingProp === prop && u.sessionId !== this.mySessionId);
+    return user ? user.color : '';
+  }
+
+  getUsersEditingNode(nodeId: string): any[] {
+    return this.connectedUsers.filter(u => u.editingNodeId === nodeId && u.sessionId !== this.mySessionId);
   }
 
   ngOnDestroy() {

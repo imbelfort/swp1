@@ -13,12 +13,10 @@ public class PresenceService {
     // Map of SessionId -> UserInfo (which includes policyId)
     private final Map<String, Map<String, String>> activeSessions = new ConcurrentHashMap<>();
 
-    public void addSession(String sessionId, String policyId, String username, String color) {
-        Map<String, String> userInfo = new HashMap<>();
+    public void addSession(String sessionId, String policyId, Map<String, String> userPayload) {
+        Map<String, String> userInfo = new HashMap<>(userPayload);
         userInfo.put("sessionId", sessionId);
         userInfo.put("policyId", policyId);
-        userInfo.put("username", username);
-        userInfo.put("color", color);
         activeSessions.put(sessionId, userInfo);
     }
 

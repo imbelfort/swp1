@@ -25,15 +25,15 @@ public class CollaborationController {
         return state;
     }
 
+    @Autowired
+    private org.springframework.messaging.simp.SimpMessageSendingOperations messagingTemplate;
+
     @MessageMapping("/designer/presence/join/{policyId}")
-    @SendTo("/topic/presence/{policyId}")
-    public List<Map<String, String>> joinPresence(@DestinationVariable String policyId, @Payload Map<String, String> user, SimpMessageHeaderAccessor headerAccessor) {
+    public void joinPresence(@DestinationVariable String policyId, @Payload Map<String, String> user, SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
-        String username = user.get("username");
-        String color = user.get("color");
+        presenceService.addSession(sessionId, policyId, user);
         
-        presenceService.addSession(sessionId, policyId, username, color);
-        
-        return presenceService.getUsersForPolicy(policyId);
+        // Broadcast the updated list of users to the specific policy presence channel
+        messagingTemplate.convertAndSend("/topic/presence/" + policyId, presenceService.getUsersForPolicy(policyId));
     }
 }
