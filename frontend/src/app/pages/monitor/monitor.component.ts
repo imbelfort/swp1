@@ -77,18 +77,20 @@ import { WorkflowService } from '../../services/workflow.service';
               <!-- Selector de Decisión / Outcome -->
               <div class="form-field" *ngIf="getAvailableOutcomes().length > 0">
                 <label style="font-weight: 600; color: var(--primary); font-size: 0.875rem;">Tomar Decisión / Ruta:</label>
-                <div class="decision-buttons">
-                  <button *ngFor="let opt of getAvailableOutcomes()" 
-                          class="btn-decision glass-card animate-pop" 
-                          (click)="completar(opt)">
-                    {{ opt }}
-                  </button>
+                <div class="decision-radios" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                  <label *ngFor="let opt of getAvailableOutcomes()" class="radio-card" [class.selected]="selectedOutcome === opt">
+                    <input type="radio" [(ngModel)]="selectedOutcome" [value]="opt" name="decisionOutcome" style="display: none;">
+                    <div class="radio-content">
+                      <span class="radio-circle"></span>
+                      <span style="font-weight: 600; color: #1e293b;">{{ opt }}</span>
+                    </div>
+                  </label>
                 </div>
               </div>
 
               <!-- Botón Finalizar normal (Si no hay opciones de decisión) -->
               <div class="form-field" *ngIf="getAvailableOutcomes().length === 0">
-                <label style="font-weight: 600; color: #475569;">Escribir Decisión Manual (Solo si es necesario):</label>
+                <label style="font-weight: 600; color: #475569;">Decisión Manual (Dejar en blanco si no aplica):</label>
                 <input [(ngModel)]="selectedOutcome" placeholder="Ej: SI / NO" class="minimal-input" style="border: 1px solid #cbd5e1;">
               </div>
               
@@ -98,8 +100,10 @@ import { WorkflowService } from '../../services/workflow.service';
               </div>
             </div>
 
-            <footer class="panel-footer" *ngIf="getAvailableOutcomes().length === 0">
-              <button class="btn-primary" (click)="completar()">Finalizar Tarea</button>
+            <footer class="panel-footer">
+              <button class="btn-primary" (click)="completar()" [disabled]="getAvailableOutcomes().length > 0 && !selectedOutcome">
+                {{ getAvailableOutcomes().length > 0 ? 'Finalizar y Enviar' : 'Finalizar Tarea' }}
+              </button>
             </footer>
           </ng-container>
 
@@ -233,10 +237,15 @@ import { WorkflowService } from '../../services/workflow.service';
     textarea { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; height: 120px; resize: none; }
     .panel-footer { padding: 24px; border-top: 1px solid var(--border-color); }
     .panel-footer .btn-primary { width: 100%; }
+    .panel-footer .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
     
-    .decision-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-    .btn-decision { background: #f0fdf4; border: 1px solid #22c55e; color: #166534; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.1); }
-    .btn-decision:hover { background: #22c55e; color: white; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2); }
+    .radio-card { display: block; border: 2px solid #e2e8f0; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; background: white; }
+    .radio-card:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .radio-card.selected { border-color: var(--primary); background: #eff6ff; }
+    .radio-content { display: flex; align-items: center; gap: 12px; }
+    .radio-circle { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #cbd5e1; display: inline-block; position: relative; }
+    .radio-card.selected .radio-circle { border-color: var(--primary); }
+    .radio-card.selected .radio-circle::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
     
     /* Modal Styles */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; }
@@ -417,7 +426,8 @@ export class MonitorComponent implements OnInit {
         this.loadTramites();
       },
       error: (err) => {
-        alert('No se pudo avanzar de etapa. Requisitos: Escribe la Decisión exacta (Ej: SI o NO) configurada en tu lienzo para que Flowable sepa por cuál camino ir.');
+        const errorMsg = err.error?.error || 'No se pudo avanzar de etapa. Si cambiaste el lienzo recientemente, inicia un nuevo trámite para aplicar los cambios.';
+        alert(errorMsg);
       }
     });
   }

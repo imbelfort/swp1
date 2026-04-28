@@ -165,14 +165,15 @@ import SockJS from 'sockjs-client';
                         <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Ej: ¿Aprobado?" (ngModelChange)="scheduleRedraw(); broadcastState()" style="text-align: center;">
                         
                         <div class="field-section" style="border-top: 1px solid #cbd5e1; padding-top: 8px;">
-                          <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 6px;">OPCIONES DE RUTA:</small>
+                          <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 2px;">BOTONES DE DECISIÓN PARA EL FUNCIONARIO:</small>
+                          <small style="color: #64748b; font-size: 0.65rem; display: block; margin-bottom: 6px; line-height: 1.2;">Puedes dejar el nombre del destino, o escribir uno diferente para el botón.</small>
                           <div *ngFor="let conn of getOutgoingConnections(node.id)" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-                              <span>➔</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ getNodeName(conn.destinoId) }}</span>
+                            <div style="font-size: 0.7rem; font-weight: 600; color: var(--primary); margin-bottom: 2px;">
+                              ➔ Va hacia: {{ getNodeName(conn.destinoId) }}
                             </div>
-                            <input [(ngModel)]="conn.condicion" placeholder="Ej: SI / NO" class="minimal-input" style="font-size: 0.7rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--border-color); background: white;" (ngModelChange)="scheduleRedraw(); broadcastState()">
+                            <input [(ngModel)]="conn.condicion" placeholder="Texto del botón" class="minimal-input" style="font-size: 0.75rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid #93c5fd; background: white; font-weight: 600;" (ngModelChange)="scheduleRedraw(); broadcastState()">
                           </div>
-                          <small *ngIf="getOutgoingConnections(node.id).length === 0" style="color: #f59e0b; font-size: 0.65rem;">Conecta este nodo a otros para configurar rutas.</small>
+                          <small *ngIf="getOutgoingConnections(node.id).length === 0" style="color: #f59e0b; font-size: 0.65rem;">Debes dibujar flechas desde este rombo hacia otras actividades para configurar las opciones.</small>
                         </div>
                       </div>
                     </div>
@@ -553,7 +554,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
             id: 'c' + Date.now(),
             origenId: this.connectionOrigin.id,
             destinoId: node.id,
-            condicion: ''
+            condicion: this.connectionOrigin.tipo === 'DECISION' ? node.nombre : 'DEFAULT'
           }];
           this.scheduleRedraw();
           this.broadcastState();

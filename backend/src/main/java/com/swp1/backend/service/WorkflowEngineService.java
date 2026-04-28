@@ -70,7 +70,7 @@ public class WorkflowEngineService {
                 .anyMatch(n -> n.getId().equals(conexion.getOrigenId()) && 
                                (n.getTipo() == com.swp1.backend.model.Nodo.TipoNodo.DECISION));
 
-            if (conexion.getCondicion() != null && !conexion.getCondicion().isEmpty()) {
+            if (isFromDecision && conexion.getCondicion() != null && !conexion.getCondicion().isEmpty()) {
                 flow.setConditionExpression("${outcome == '" + conexion.getCondicion() + "'}");
             } else if (isFromDecision) {
                 org.flowable.bpmn.model.FlowElement element = process.getFlowElement(conexion.getOrigenId());
@@ -89,6 +89,14 @@ public class WorkflowEngineService {
             process.addFlowElement(flow);
         }
 
+        try {
+            org.flowable.bpmn.converter.BpmnXMLConverter converter = new org.flowable.bpmn.converter.BpmnXMLConverter();
+            byte[] xmlBytes = converter.convertToXML(model);
+            System.out.println("DEBUG BPMN XML GENERADO:\n" + new String(xmlBytes, java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         repositoryService.createDeployment()
                 .addBpmnModel(process.getId() + ".bpmn", model)
                 .name(politica.getNombre())
@@ -96,7 +104,9 @@ public class WorkflowEngineService {
     }
 
     public void iniciarTramite(String politicaId, String tramiteId) {
-        runtimeService.startProcessInstanceByKey("process_" + politicaId, tramiteId);
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("outcome", "DEFAULT");
+        runtimeService.startProcessInstanceByKey("process_" + politicaId, tramiteId, variables);
     }
 
     public void completarTarea(String tramiteId, Map<String, Object> variables) {
