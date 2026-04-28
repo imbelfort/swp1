@@ -135,13 +135,18 @@ import SockJS from 'sockjs-client';
                               <option value="FOTO">Foto/Archivo</option>
                             </select>
                             <button (click)="removeField(node, field); scheduleRedraw()" class="btn-remove">×</button>
-                            
-                            <div *ngIf="field.tipo === 'SELECCION'" class="options-config">
-                              <input [(ngModel)]="field.tempOpcion" placeholder="Nueva opción..." (keyup.enter)="addOpcion(field); scheduleRedraw()">
-                              <div class="tags">
-                                <span *ngFor="let opt of field.opciones" class="tag">{{ opt }}</span>
-                              </div>
-                            </div>
+                            <div *ngIf="field.tipo === 'SELECCION'" class="options-config" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; width: 100%;">
+                               <div style="display: flex; gap: 4px;">
+                                 <input [(ngModel)]="field.tempOpcion" placeholder="Nueva opción..." (keyup.enter)="addOpcion(field); scheduleRedraw()" (blur)="addOpcion(field)" style="flex: 1; padding: 4px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                 <button (click)="addOpcion(field); scheduleRedraw()" style="padding: 0 8px; background: var(--primary); color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">+</button>
+                               </div>
+                               <div class="tags" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;">
+                                 <span *ngFor="let opt of field.opciones; let idx = index" class="tag" style="background: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px;">
+                                   {{ opt }}
+                                   <button (click)="field.opciones.splice(idx, 1); scheduleRedraw(); broadcastState()" style="border: none; background: transparent; color: #ef4444; cursor: pointer; font-size: 0.75rem; padding: 0; line-height: 1;">×</button>
+                                 </span>
+                               </div>
+                             </div>
                           </div>
                         </div>
                         <button class="add-field-btn" (click)="addField(node); scheduleRedraw()">+ Campo</button>

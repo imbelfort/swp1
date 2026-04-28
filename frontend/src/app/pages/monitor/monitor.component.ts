@@ -15,191 +15,175 @@ import { WorkflowService } from '../../services/workflow.service';
       </header>
 
       <div class="layout">
-        <!-- Listado -->
-        <div class="list-panel glass-card">
-          <table class="minimal-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-                <th>Tiempo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let t of tramites" (click)="seleccionarTramite(t)" [class.active]="selectedTramite?.id === t.id">
-                <td class="id-text">#{{ t.id.substring(0,6) }}</td>
-                <td>{{ t.cliente }}</td>
-                <td>
-                  <span class="status-dot" [class]="t.estado?.toLowerCase()"></span>
-                  {{ t.estado }}
-                </td>
-                <td style="font-weight: 600; color: #475569;">{{ getTiempoTotalTramite(t) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Botón para ver detalles (Modal) -->
-        <div class="form-panel glass-card animate-pop" *ngIf="selectedTramite">
-          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px;">
-            <div>
-              <h4 style="margin: 0; color: var(--text-muted); font-size: 0.75rem;">TRÁMITE</h4>
-              <h3 style="margin: 2px 0 0 0; font-size: 1rem;">#{{ selectedTramite.id.substring(0,8) }}</h3>
-            </div>
-            <button class="btn-primary" (click)="openModal()" style="padding: 6px 12px; font-size: 0.75rem;">👁️ Ver Avance</button>
-          </div>
+        <!-- Kanban Board (Sistema de Calles) -->
+        <div class="list-panel kanban-board" style="display: flex; gap: 16px; width: 100%; overflow-x: auto; padding-bottom: 16px;">
           
-          <!-- Formulario de Acción (Si no ha finalizado) -->
-          <ng-container *ngIf="selectedTramite.estado !== 'FINALIZADO' && currentNode">
-            <div class="panel-header">
-              <h3>{{ currentNode?.nombre }}</h3>
-              <p>Por: {{ getDeptoName(currentNode?.departamentoId) }}</p>
-            </div>
-
-            <div class="form-body">
-              <div *ngFor="let campo of currentNode?.campos" class="form-field">
-                <label>{{ campo.etiqueta }}</label>
-                
-                <ng-container [ngSwitch]="campo.tipo">
-                  <select *ngSwitchCase="'SELECCION'" [(ngModel)]="campo.valor" class="minimal-input">
-                    <option *ngFor="let opt of campo.opciones" [value]="opt">{{ opt }}</option>
-                  </select>
-                  
-                  <input *ngSwitchCase="'FOTO'" type="file" class="minimal-input">
-                  
-                  <input *ngSwitchCase="'NUMERO'" type="number" [(ngModel)]="campo.valor" class="minimal-input">
-                  
-                  <input *ngSwitchDefault type="text" [(ngModel)]="campo.valor" class="minimal-input">
-                </ng-container>
-              </div>
-
-              <!-- Selector de Decisión / Outcome -->
-              <div class="form-field" *ngIf="getAvailableOutcomes().length > 0">
-                <label style="font-weight: 600; color: var(--primary); font-size: 0.875rem;">Tomar Decisión / Ruta:</label>
-                <div class="decision-radios" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                  <label *ngFor="let opt of getAvailableOutcomes()" class="radio-card" [class.selected]="selectedOutcome === opt">
-                    <input type="radio" [(ngModel)]="selectedOutcome" [value]="opt" name="decisionOutcome" style="display: none;">
-                    <div class="radio-content">
-                      <span class="radio-circle"></span>
-                      <span style="font-weight: 600; color: #1e293b;">{{ opt }}</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Botón Finalizar normal (Si no hay opciones de decisión) -->
-              <div class="form-field" *ngIf="getAvailableOutcomes().length === 0">
-                <label style="font-weight: 600; color: #475569;">Decisión Manual (Dejar en blanco si no aplica):</label>
-                <input [(ngModel)]="selectedOutcome" placeholder="Ej: SI / NO" class="minimal-input" style="border: 1px solid #cbd5e1;">
-              </div>
-              
-              <div class="report-area">
-                <label>Informe/Observaciones:</label>
-                <textarea [(ngModel)]="iaReport" placeholder="Escribe aquí el informe del funcionario..."></textarea>
-              </div>
-            </div>
-
-            <footer class="panel-footer">
-              <button class="btn-primary" (click)="completar()" [disabled]="getAvailableOutcomes().length > 0 && !selectedOutcome">
-                {{ getAvailableOutcomes().length > 0 ? 'Finalizar y Enviar' : 'Finalizar Tarea' }}
-              </button>
-            </footer>
-          </ng-container>
-
-          <!-- Historial (Si finalizó) -->
-          <ng-container *ngIf="selectedTramite.estado === 'FINALIZADO'">
-            <div class="panel-header">
-              <h3>Trámite Finalizado</h3>
-              <p>Detalles del flujo completado</p>
+          <div *ngFor="let lane of lanes" class="kanban-lane glass-card" style="flex: 1; min-width: 250px; background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(8px); padding: 16px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.8); display: flex; flex-direction: column; gap: 12px;">
+            <div class="lane-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+              <h3 style="font-size: 0.875rem; font-weight: 700; color: #334155; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">{{ lane }}</h3>
+              <span class="lane-count" style="background: #e2e8f0; color: #475569; font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600;">{{ getTramitesByLane(lane).length }}</span>
             </div>
             
-            <div class="form-body history-body">
-              <div *ngIf="!selectedTramite.historial || selectedTramite.historial.length === 0" class="empty-history">
-                No hay detalles guardados para este trámite.
+            <div class="lane-cards" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: calc(100vh - 250px);">
+              <div *ngIf="getTramitesByLane(lane).length === 0" style="text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 16px 0;">
+                No hay trámites
               </div>
               
-              <div *ngFor="let log of selectedTramite.historial" class="history-item">
-                <div class="history-header">
-                  <h4>{{ log.nombreNodo }}</h4>
-                  <span class="date">{{ log.fechaCompletado | date:'dd/MM/yyyy HH:mm' }}</span>
+              <div *ngFor="let t of getTramitesByLane(lane)" 
+                   (click)="seleccionarTramite(t)" 
+                   class="kanban-card" 
+                   [class.active]="selectedTramite?.id === t.id"
+                   style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 6px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="id-text" style="font-family: monospace; font-size: 0.75rem; font-weight: 700; color: var(--primary);">#{{ t.id.substring(0,6) }}</span>
+                  <span style="font-size: 0.65rem; color: #64748b; font-weight: 600; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ getTiempoTotalTramite(t) }}</span>
                 </div>
                 
-                <div *ngIf="log.datosFormulario?.length" class="history-fields">
-                  <div *ngFor="let c of log.datosFormulario" class="hist-field">
-                    <span class="lbl">{{ c.etiqueta }}:</span> <span class="val">{{ c.valor || 'N/A' }}</span>
-                  </div>
-                </div>
+                <div style="font-size: 0.875rem; font-weight: 600; color: #1e293b;">{{ t.cliente }}</div>
                 
-                <div *ngIf="log.informeIA" class="history-report">
-                  <span class="lbl">Observaciones:</span>
-                  <p>{{ log.informeIA }}</p>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                  <span class="status-dot" [class]="t.estado?.toLowerCase()" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;"></span>
+                  <span style="font-size: 0.7rem; color: #64748b; font-weight: 500;">{{ t.estado }}</span>
                 </div>
               </div>
             </div>
-          </ng-container>
-
+          </div>
+          
         </div>
-      </div>
 
       <!-- Modal de Avance y Detalles -->
       <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-        <div class="modal-content glass-card animate-pop" (click)="$event.stopPropagation()">
+        <div class="modal-content glass-card animate-pop" (click)="$event.stopPropagation()" style="width: 1000px; max-width: 95vw; height: 85vh; display: flex; flex-direction: column;">
           <header class="modal-header">
-            <h3>Trámite de {{ selectedTramite?.cliente }}</h3>
+            <div>
+              <h3 style="margin: 0; font-size: 1.25rem;">Trámite de {{ selectedTramite?.cliente }}</h3>
+              <p style="margin: 4px 0 0 0; font-size: 0.813rem; color: var(--text-muted);">ID: #{{ selectedTramite?.id }}</p>
+            </div>
             <button class="close-btn" (click)="closeModal()">×</button>
           </header>
 
-          <div class="modal-body-scroll">
+          <div class="modal-body-scroll" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; height: calc(85vh - 70px); overflow: hidden; padding: 24px;">
             
-            <!-- Ruta del Proceso -->
-            <div class="modal-section">
-              <h4 class="section-title">Ruta del Trámite</h4>
-              <div class="flow-steps">
-                <div *ngFor="let node of policyNodes" class="flow-step" 
-                     [class.completed]="isNodeCompleted(node.id)"
-                     [class.current]="selectedTramite.nodoActualId === node.id">
-                  <div class="step-icon">
-                    <span *ngIf="node.tipo === 'INICIO'">⭕</span>
-                    <span *ngIf="node.tipo === 'ACTIVIDAD'">⏹️</span>
-                    <span *ngIf="node.tipo === 'DECISION'">🔶</span>
-                    <span *ngIf="node.tipo === 'FIN'">🏁</span>
-                  </div>
-                  <div class="step-info">
-                    <span class="step-name">{{ node.nombre }}</span>
-                    <span class="step-dept">{{ getDeptoName(node.departamentoId) }}</span>
-                    <span class="step-duration" *ngIf="isNodeCompleted(node.id)">⏱️ Tiempo: {{ getDuracionNodo(node.id) }}</span>
-                  </div>
-                  <span class="step-status">
-                    {{ isNodeCompleted(node.id) ? 'Completado' : (selectedTramite.nodoActualId === node.id ? 'En Proceso' : 'Pendiente') }}
-                  </span>
+            <!-- COLUMNA 1: Acciones del Funcionario -->
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%; overflow-y: auto;">
+              
+              <!-- Si el trámite no ha finalizado -->
+              <ng-container *ngIf="selectedTramite?.estado !== 'FINALIZADO' && currentNode">
+                <div style="margin-bottom: 16px;">
+                  <h4 style="margin: 0; color: var(--primary); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;">Etapa Actual</h4>
+                  <h3 style="margin: 4px 0 0 0; font-size: 1.125rem; color: #1e293b;">{{ currentNode?.nombre }}</h3>
+                  <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Asignado a: {{ getDeptoName(currentNode?.departamentoId) }}</p>
                 </div>
-              </div>
-            </div>
 
-            <!-- Datos Llenados -->
-            <div class="modal-section mt-4">
-              <h4 class="section-title">Datos Registrados</h4>
-              <div *ngIf="!selectedTramite.historial || selectedTramite.historial.length === 0" class="empty-history">
-                No se han llenado datos todavía.
-              </div>
-              <div class="history-grid" *ngIf="selectedTramite.historial?.length">
-                <div *ngFor="let log of selectedTramite.historial" class="history-item">
-                  <div class="history-header">
-                    <h4>{{ log.nombreNodo }}</h4>
-                    <span class="date">{{ log.fechaCompletado | date:'dd/MM HH:mm' }}</span>
+                <div class="form-body" style="padding: 0; display: flex; flex-direction: column; gap: 16px; flex: 1;">
+                  <div *ngFor="let campo of currentNode?.campos" class="form-field" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.813rem; font-weight: 600; color: #475569;">{{ campo.etiqueta }}</label>
+                    
+                    <ng-container [ngSwitch]="campo.tipo">
+                      <select *ngSwitchCase="'SELECCION'" [(ngModel)]="campo.valor" class="minimal-input">
+                        <option *ngFor="let opt of campo.opciones" [value]="opt">{{ opt }}</option>
+                      </select>
+                      
+                      <input *ngSwitchCase="'FOTO'" type="file" class="minimal-input">
+                      <input *ngSwitchCase="'NUMERO'" type="number" [(ngModel)]="campo.valor" class="minimal-input">
+                      <input *ngSwitchDefault type="text" [(ngModel)]="campo.valor" class="minimal-input">
+                    </ng-container>
                   </div>
-                  <div *ngIf="log.datosFormulario?.length" class="history-fields">
-                    <div *ngFor="let c of log.datosFormulario" class="hist-field">
-                      <span class="lbl">{{ c.etiqueta }}:</span> <span class="val">{{ c.valor || 'N/A' }}</span>
+
+                  <!-- Decisiones -->
+                  <div class="form-field" *ngIf="getAvailableOutcomes().length > 0">
+                    <label style="font-weight: 600; color: var(--primary); font-size: 0.875rem;">Tomar Decisión / Ruta:</label>
+                    <div class="decision-radios" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                      <label *ngFor="let opt of getAvailableOutcomes()" class="radio-card" [class.selected]="selectedOutcome === opt">
+                        <input type="radio" [(ngModel)]="selectedOutcome" [value]="opt" name="decisionOutcome" style="display: none;">
+                        <div class="radio-content">
+                          <span class="radio-circle"></span>
+                          <span style="font-weight: 600; color: #1e293b;">{{ opt }}</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
-                  <div *ngIf="log.informeIA" class="history-report">
-                    <span class="lbl">Informe:</span>
-                    <p>{{ log.informeIA }}</p>
+
+                  <div class="report-area" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.813rem; font-weight: 600; color: #475569;">Informe/Observaciones:</label>
+                    <textarea [(ngModel)]="iaReport" placeholder="Escribe aquí el informe del funcionario..." style="height: 100px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;"></textarea>
+                  </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                  <button class="btn-primary" (click)="completar()" [disabled]="getAvailableOutcomes().length > 0 && !selectedOutcome" style="width: 100%; padding: 12px; font-weight: 600;">
+                    {{ getAvailableOutcomes().length > 0 ? 'Finalizar y Enviar' : 'Finalizar Tarea' }}
+                  </button>
+                </div>
+              </ng-container>
+
+              <!-- Si ya finalizó -->
+              <ng-container *ngIf="selectedTramite?.estado === 'FINALIZADO'">
+                <div style="text-align: center; margin: auto 0;">
+                  <span style="font-size: 3rem;">🎉</span>
+                  <h3 style="color: #22c55e; margin: 12px 0 4px 0;">¡Trámite Completado!</h3>
+                  <p style="color: var(--text-muted); font-size: 0.813rem; margin: 0;">Este proceso ha finalizado correctamente.</p>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- COLUMNA 2: Historial y Progreso -->
+            <div style="display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; padding-right: 8px;">
+              
+              <!-- Ruta del Proceso -->
+              <div class="modal-section">
+                <h4 class="section-title" style="border-bottom: 2px solid var(--primary);">Línea de Tiempo del Trámite</h4>
+                <div class="flow-steps" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                  <div *ngFor="let node of policyNodes" class="flow-step" 
+                       [class.completed]="isNodeCompleted(node.id)"
+                       [class.current]="selectedTramite.nodoActualId === node.id"
+                       style="display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 8px; background: #f8fafc; border-left: 4px solid #cbd5e1;">
+                    
+                    <div class="step-icon" style="font-size: 1.25rem;">
+                      <span *ngIf="node.tipo === 'INICIO'">⭕</span>
+                      <span *ngIf="node.tipo === 'ACTIVIDAD'">⏹️</span>
+                      <span *ngIf="node.tipo === 'DECISION'">🔶</span>
+                      <span *ngIf="node.tipo === 'FIN'">🏁</span>
+                    </div>
+                    
+                    <div class="step-info" style="flex: 1; display: flex; flex-direction: column;">
+                      <span class="step-name" style="font-weight: 600; color: #1e293b; font-size: 0.875rem;">{{ node.nombre }}</span>
+                      <span class="step-dept" style="font-size: 0.75rem; color: #64748b;">{{ getDeptoName(node.departamentoId) }}</span>
+                      <span class="step-duration" *ngIf="isNodeCompleted(node.id)" style="font-size: 0.75rem; color: #0ea5e9; font-weight: 500; margin-top: 2px;">⏱️ {{ getDuracionNodo(node.id) }}</span>
+                    </div>
+
+                    <span class="step-status" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; background: #e2e8f0; color: #475569;">
+                      {{ isNodeCompleted(node.id) ? 'Completado' : (selectedTramite.nodoActualId === node.id ? 'En Proceso' : 'Pendiente') }}
+                    </span>
                   </div>
                 </div>
               </div>
+
+              <!-- Datos Registrados -->
+              <div class="modal-section">
+                <h4 class="section-title">Datos Registrados</h4>
+                <div *ngIf="!selectedTramite.historial || selectedTramite.historial.length === 0" style="text-align: center; color: #94a3b8; font-size: 0.813rem; padding: 24px 0;">
+                  No hay datos registrados aún.
+                </div>
+                <div *ngFor="let log of selectedTramite.historial" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 8px;">
+                    <h4 style="margin: 0; font-size: 0.875rem; color: #1e293b;">{{ log.nombreNodo }}</h4>
+                    <span style="font-size: 0.75rem; color: #64748b;">{{ log.fechaCompletado | date:'dd/MM HH:mm' }}</span>
+                  </div>
+                  <div *ngIf="log.datosFormulario?.length" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div *ngFor="let c of log.datosFormulario" style="background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                      <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; display: block;">{{ c.etiqueta }}:</span>
+                      <span style="font-size: 0.813rem; color: #1e293b;">{{ c.valor || 'N/A' }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="log.informeIA" style="margin-top: 8px; padding: 8px; background: #fffbeb; border: 1px dashed #fcd34d; border-radius: 6px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #d97706;">Informe:</span>
+                    <p style="font-size: 0.813rem; color: #451a03; margin: 4px 0 0 0; font-style: italic;">{{ log.informeIA }}</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
           </div>
@@ -215,7 +199,9 @@ import { WorkflowService } from '../../services/workflow.service';
     .page-header p { color: var(--text-muted); font-size: 0.875rem; }
     .layout { display: flex; gap: 24px; flex: 1; overflow: hidden; }
     .list-panel { flex: 1; overflow-y: auto; }
-    .form-panel { width: 400px; display: flex; flex-direction: column; }
+    .form-panel { width: 400px; display: flex; flex-direction: column; flex-shrink: 0; }
+    .kanban-card:hover { border-color: #cbd5e1 !important; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+    .kanban-card.active { border-color: var(--primary) !important; background: #eff6ff !important; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important; }
     .minimal-table { width: 100%; border-collapse: collapse; }
     .minimal-table th { text-align: left; padding: 12px 24px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border-color); text-transform: uppercase; }
     .minimal-table td { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; cursor: pointer; }
@@ -304,7 +290,31 @@ export class MonitorComponent implements OnInit {
     this.showModal = false;
   }
 
-  ngOnInit() { this.loadTramites(); }
+  policies: any[] = [];
+  lanes: string[] = ['Atención al Cliente', 'Técnico', 'Dirección', 'Finalizados'];
+
+  ngOnInit() { 
+    this.workflowService.getPolicies().subscribe(policies => {
+      this.policies = policies;
+      this.loadTramites(); 
+    }); 
+  }
+
+  getTramiteLane(t: any): string {
+    if (t.estado === 'FINALIZADO') return 'Finalizados';
+    
+    const pol = this.policies.find(p => p.id === t.politicaId);
+    if (!pol) return 'Sin Asignar';
+    
+    const node = pol.nodos.find((n: any) => n.id === t.nodoActualId);
+    if (!node) return 'Sin Asignar';
+    
+    return this.getDeptoName(node.departamentoId);
+  }
+
+  getTramitesByLane(lane: string): any[] {
+    return this.tramites.filter(t => this.getTramiteLane(t) === lane);
+  }
 
   loadTramites() {
     this.workflowService.getTramites().subscribe(data => {
@@ -335,6 +345,7 @@ export class MonitorComponent implements OnInit {
       } else {
         this.currentNode = null;
       }
+      this.showModal = true;
     });
   }
 
@@ -423,6 +434,7 @@ export class MonitorComponent implements OnInit {
     this.workflowService.completarActividad(this.selectedTramite.id, this.currentNode.id, extraData).subscribe({
       next: () => {
         alert('¡Etapa completada con éxito!');
+        this.closeModal();
         this.loadTramites();
       },
       error: (err) => {
