@@ -4,11 +4,18 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import com.swp1.backend.service.PresenceService;
 import java.util.Map;
+import java.util.List;
 
 @Controller
 public class CollaborationController {
+
+    @Autowired
+    private PresenceService presenceService;
 
     @MessageMapping("/designer/sync/{policyId}")
     @SendTo("/topic/policy/{policyId}")
@@ -16,5 +23,17 @@ public class CollaborationController {
         // Broadcasts the payload (which includes nodes, connections, and senderId) 
         // to all subscribers of /topic/policy/{policyId}
         return state;
+    }
+
+    @MessageMapping("/designer/presence/join/{policyId}")
+    @SendTo("/topic/presence/{policyId}")
+    public List<Map<String, String>> joinPresence(@DestinationVariable String policyId, @Payload Map<String, String> user, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        String username = user.get("username");
+        String color = user.get("color");
+        
+        presenceService.addSession(sessionId, policyId, username, color);
+        
+        return presenceService.getUsersForPolicy(policyId);
     }
 }

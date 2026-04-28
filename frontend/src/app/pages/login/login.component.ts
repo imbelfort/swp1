@@ -33,8 +33,9 @@ import { AuthService } from '../../services/auth.service';
         <div class="quick-roles">
           <p>O inicia rápido como:</p>
           <div class="role-buttons">
-            <button (click)="quickLogin('ADMIN')" class="btn-outline">Administrador</button>
-            <button (click)="quickLogin('FUNCIONARIO')" class="btn-outline">Funcionario</button>
+            <button (click)="quickLogin('ADMIN', 'Admin 1')" class="btn-outline">Admin 1</button>
+            <button (click)="quickLogin('ADMIN', 'Admin 2')" class="btn-outline">Admin 2</button>
+            <button (click)="quickLogin('FUNCIONARIO', 'Funcionario')" class="btn-outline">Func. 1</button>
           </div>
         </div>
       </div>
@@ -171,14 +172,14 @@ export class LoginComponent {
   onSubmit(event: Event) {
     event.preventDefault();
     if (this.username.toLowerCase().includes('admin')) {
-      this.quickLogin('ADMIN');
+      this.quickLogin('ADMIN', this.username);
     } else {
-      this.quickLogin('FUNCIONARIO');
+      this.quickLogin('FUNCIONARIO', this.username);
     }
   }
 
-  quickLogin(role: 'ADMIN' | 'FUNCIONARIO') {
-    this.auth.login(role);
+  quickLogin(role: 'ADMIN' | 'FUNCIONARIO', customUsername?: string) {
+    this.auth.login(role, customUsername);
     this.router.navigate(['/dashboard']);
   }
 }

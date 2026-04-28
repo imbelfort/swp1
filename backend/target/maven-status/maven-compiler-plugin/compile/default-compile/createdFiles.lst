@@ -8,6 +8,7 @@ com\swp1\backend\service\WorkflowEngineService.class
 com\swp1\backend\model\Usuario.class
 com\swp1\backend\repository\UsuarioRepository.class
 com\swp1\backend\controller\TramiteController.class
+com\swp1\backend\config\WebSocketEventListener.class
 com\swp1\backend\model\CampoFormulario.class
 com\swp1\backend\model\Nodo$TipoNodo.class
 com\swp1\backend\model\Departamento.class
@@ -20,6 +21,7 @@ com\swp1\backend\controller\CollaborationController.class
 com\swp1\backend\controller\UsuarioController.class
 com\swp1\backend\controller\PoliticaController.class
 com\swp1\backend\model\PoliticaNegocio.class
+com\swp1\backend\service\PresenceService.class
 com\swp1\backend\BackendApplication.class
 com\swp1\backend\model\Tramite.class
 com\swp1\backend\config\WebSocketConfig.class

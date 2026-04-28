@@ -6,16 +6,22 @@ export type UserRole = 'ADMIN' | 'FUNCIONARIO' | null;
   providedIn: 'root'
 })
 export class AuthService {
-  private _currentUser = signal<{ username: string, role: UserRole } | null>(
+  private _currentUser = signal<{ username: string, role: UserRole, color?: string } | null>(
     JSON.parse(localStorage.getItem('user') || 'null')
   );
   
   currentUser = this._currentUser.asReadonly();
 
-  login(role: UserRole) {
-    const user = role === 'ADMIN' 
-      ? { username: 'Administrador', role: 'ADMIN' } 
-      : { username: 'Funcionario 1', role: 'FUNCIONARIO' };
+  login(role: UserRole, customUsername?: string) {
+    const colors = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#ec4899'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    let username = customUsername;
+    if (!username) {
+      username = role === 'ADMIN' ? 'Administrador' : 'Funcionario';
+    }
+    
+    const user = { username, role, color: randomColor };
     
     this._currentUser.set(user as any);
     localStorage.setItem('user', JSON.stringify(user));

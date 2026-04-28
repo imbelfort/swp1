@@ -76,17 +76,20 @@ import { WorkflowService } from '../../services/workflow.service';
 
               <!-- Selector de Decisión / Outcome -->
               <div class="form-field" *ngIf="getAvailableOutcomes().length > 0">
-                <label style="font-weight: 600; color: var(--primary);">Elegir Decisión / Ruta:</label>
-                <select [(ngModel)]="selectedOutcome" class="minimal-input" style="background: #f0fdf4; border: 1px solid #22c55e;">
-                  <option value="">-- Selecciona una opción --</option>
-                  <option *ngFor="let opt of getAvailableOutcomes()" [value]="opt">{{ opt }}</option>
-                </select>
+                <label style="font-weight: 600; color: var(--primary); font-size: 0.875rem;">Tomar Decisión / Ruta:</label>
+                <div class="decision-buttons">
+                  <button *ngFor="let opt of getAvailableOutcomes()" 
+                          class="btn-decision glass-card animate-pop" 
+                          (click)="completar(opt)">
+                    {{ opt }}
+                  </button>
+                </div>
               </div>
 
-              <!-- Fallback: Escribir Decisión si no hay opciones cargadas -->
-              <div class="form-field">
-                <label style="font-weight: 600; color: #475569;">Escribir Decisión Manual (Si no salen opciones):</label>
-                <input [(ngModel)]="selectedOutcome" placeholder="Ej: SI / NO (Como lo configuraste en el lienzo)" class="minimal-input" style="border: 1px solid #cbd5e1;">
+              <!-- Botón Finalizar normal (Si no hay opciones de decisión) -->
+              <div class="form-field" *ngIf="getAvailableOutcomes().length === 0">
+                <label style="font-weight: 600; color: #475569;">Escribir Decisión Manual (Solo si es necesario):</label>
+                <input [(ngModel)]="selectedOutcome" placeholder="Ej: SI / NO" class="minimal-input" style="border: 1px solid #cbd5e1;">
               </div>
               
               <div class="report-area">
@@ -95,7 +98,7 @@ import { WorkflowService } from '../../services/workflow.service';
               </div>
             </div>
 
-            <footer class="panel-footer">
+            <footer class="panel-footer" *ngIf="getAvailableOutcomes().length === 0">
               <button class="btn-primary" (click)="completar()">Finalizar Tarea</button>
             </footer>
           </ng-container>
@@ -230,6 +233,10 @@ import { WorkflowService } from '../../services/workflow.service';
     textarea { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; height: 120px; resize: none; }
     .panel-footer { padding: 24px; border-top: 1px solid var(--border-color); }
     .panel-footer .btn-primary { width: 100%; }
+    
+    .decision-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .btn-decision { background: #f0fdf4; border: 1px solid #22c55e; color: #166534; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.1); }
+    .btn-decision:hover { background: #22c55e; color: white; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2); }
     
     /* Modal Styles */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; }
@@ -383,7 +390,11 @@ export class MonitorComponent implements OnInit {
     return outgoing.map(c => c.condicion);
   }
 
-  completar() {
+  completar(outcomeFromBtn?: string) {
+    if (outcomeFromBtn) {
+      this.selectedOutcome = outcomeFromBtn;
+    }
+
     const variables = this.currentNode.campos ? this.currentNode.campos.reduce((acc: any, curr: any) => {
       acc[curr.nombre] = curr.valor;
       return acc;

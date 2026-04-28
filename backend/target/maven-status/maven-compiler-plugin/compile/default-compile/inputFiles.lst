@@ -8,10 +8,12 @@ C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\mo
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\repository\TramiteRepository.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\CampoFormulario.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\service\GroqIntegrationService.java
+C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\service\PresenceService.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\Flujo.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\controller\CollaborationController.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\controller\DepartamentoController.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\LogActividad.java
+C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\config\WebSocketEventListener.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\PoliticaNegocio.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\Tramite.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\service\WorkflowEngineService.java

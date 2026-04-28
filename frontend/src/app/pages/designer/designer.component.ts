@@ -1,8 +1,9 @@
-import { Component, inject, AfterViewChecked, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, AfterViewChecked, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkflowService } from '../../services/workflow.service';
+import { AuthService } from '../../services/auth.service';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
@@ -18,6 +19,12 @@ import SockJS from 'sockjs-client';
           <input [(ngModel)]="policyName" class="minimal-input" placeholder="Nombre de la política" (ngModelChange)="scheduleRedraw(); broadcastState()">
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
+          <div *ngIf="connectedUsers.length > 0" class="avatars-container">
+            <div *ngFor="let u of connectedUsers" class="avatar" [style.background-color]="u.color" [title]="u.username">
+              {{ u.username.charAt(0) | uppercase }}
+            </div>
+          </div>
+          
           <button *ngIf="policyId" class="btn-secondary" (click)="copyShareLink()" title="Copiar enlace para otro admin">
             🔗 Compartir Enlace
           </button>
@@ -101,52 +108,75 @@ import SockJS from 'sockjs-client';
                      [class.selected]="connectionOrigin?.id === node.id"
                      (click)="onNodeClick(node)">
                      
-                  <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVIDAD'">
-                    <div class="node-header">
-                      <span class="type">{{ node.tipo }}</span>
-                      <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
-                    </div>
-                    
-                    <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre..." (ngModelChange)="scheduleRedraw()">
-                    
-                    <div class="field-section">
-                      <select [(ngModel)]="node.departamentoId" class="minimal-select" (ngModelChange)="scheduleRedraw()" style="width: 100%; margin-bottom: 8px;">
-                        <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
-                      </select>
-                    </div>
-
-                    <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
+                  <ng-container *ngIf="node.tipo !== 'DECISION'">
+                    <div class="node-box glass-card animate-pop" [class.activity]="node.tipo === 'ACTIVIDAD'">
+                      <div class="node-header">
+                        <span class="type">{{ node.tipo }}</span>
+                        <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
+                      </div>
                       
-                      <div class="fields-list">
-                        <div *ngFor="let field of node.campos" class="field-row">
-                          <input [(ngModel)]="field.etiqueta" class="minimal-input field-label">
-                          <select [(ngModel)]="field.tipo" class="minimal-select field-type" (ngModelChange)="scheduleRedraw()">
-                            <option value="TEXTO">Texto</option>
-                            <option value="NUMERO">Número</option>
-                            <option value="SELECCION">Opciones</option>
-                            <option value="FOTO">Foto/Archivo</option>
-                          </select>
-                          <button (click)="removeField(node, field); scheduleRedraw()" class="btn-remove">×</button>
-                          
-                          <div *ngIf="field.tipo === 'SELECCION'" class="options-config">
-                            <input [(ngModel)]="field.tempOpcion" placeholder="Nueva opción..." (keyup.enter)="addOpcion(field); scheduleRedraw()">
-                            <div class="tags">
-                              <span *ngFor="let opt of field.opciones" class="tag">{{ opt }}</span>
+                      <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Nombre..." (ngModelChange)="scheduleRedraw(); broadcastState()">
+                      
+                      <div class="field-section">
+                        <select [(ngModel)]="node.departamentoId" class="minimal-select" (ngModelChange)="scheduleRedraw(); broadcastState()" style="width: 100%; margin-bottom: 8px;">
+                          <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
+                        </select>
+                      </div>
+
+                      <div *ngIf="node.tipo === 'ACTIVIDAD'" class="field-section">
+                        
+                        <div class="fields-list">
+                          <div *ngFor="let field of node.campos" class="field-row">
+                            <input [(ngModel)]="field.etiqueta" class="minimal-input field-label" (ngModelChange)="broadcastState()">
+                            <select [(ngModel)]="field.tipo" class="minimal-select field-type" (ngModelChange)="scheduleRedraw(); broadcastState()">
+                              <option value="TEXTO">Texto</option>
+                              <option value="NUMERO">Número</option>
+                              <option value="SELECCION">Opciones</option>
+                              <option value="FOTO">Foto/Archivo</option>
+                            </select>
+                            <button (click)="removeField(node, field); scheduleRedraw()" class="btn-remove">×</button>
+                            
+                            <div *ngIf="field.tipo === 'SELECCION'" class="options-config">
+                              <input [(ngModel)]="field.tempOpcion" placeholder="Nueva opción..." (keyup.enter)="addOpcion(field); scheduleRedraw()">
+                              <div class="tags">
+                                <span *ngFor="let opt of field.opciones" class="tag">{{ opt }}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <button class="add-field-btn" (click)="addField(node); scheduleRedraw()">+ Campo</button>
-                    <div *ngIf="node.tipo === 'DECISION'" class="field-section" style="border-top: 1px solid #cbd5e1; padding-top: 8px;">
-                      <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 6px;">RUTAS DE SALIDA:</small>
-                      <div *ngFor="let conn of getOutgoingConnections(node.id)" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 4px;">
-                          ➔ {{ getNodeName(conn.destinoId) }}
-                        </div>
-                        <input [(ngModel)]="conn.condicion" placeholder="Ej: Aprobado" class="minimal-input" style="font-size: 0.7rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--border-color);" (ngModelChange)="scheduleRedraw()">
+                        <button class="add-field-btn" (click)="addField(node); scheduleRedraw()">+ Campo</button>
                       </div>
                     </div>
-                  </div>
+                  </ng-container>
+
+                  <ng-container *ngIf="node.tipo === 'DECISION'">
+                    <div class="decision-container animate-pop">
+                      <div class="diamond-wrapper">
+                        <div class="diamond-shape"></div>
+                        <div class="diamond-content">🔶</div>
+                      </div>
+                      
+                      <div class="decision-config glass-card">
+                        <div class="node-header">
+                          <span class="type">DECISIÓN</span>
+                          <button class="delete-btn" (click)="removeNode(node); $event.stopPropagation()">×</button>
+                        </div>
+                        
+                        <input [(ngModel)]="node.nombre" class="node-name-input" placeholder="Ej: ¿Aprobado?" (ngModelChange)="scheduleRedraw(); broadcastState()" style="text-align: center;">
+                        
+                        <div class="field-section" style="border-top: 1px solid #cbd5e1; padding-top: 8px;">
+                          <small style="color: var(--text-muted); font-weight: 700; font-size: 0.7rem; display: block; margin-bottom: 6px;">OPCIONES DE RUTA:</small>
+                          <div *ngFor="let conn of getOutgoingConnections(node.id)" style="margin-top: 6px; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                              <span>➔</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ getNodeName(conn.destinoId) }}</span>
+                            </div>
+                            <input [(ngModel)]="conn.condicion" placeholder="Ej: SI / NO" class="minimal-input" style="font-size: 0.7rem; padding: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--border-color); background: white;" (ngModelChange)="scheduleRedraw(); broadcastState()">
+                          </div>
+                          <small *ngIf="getOutgoingConnections(node.id).length === 0" style="color: #f59e0b; font-size: 0.65rem;">Conecta este nodo a otros para configurar rutas.</small>
+                        </div>
+                      </div>
+                    </div>
+                  </ng-container>
 
                 </div>
 
@@ -194,6 +224,9 @@ import SockJS from 'sockjs-client';
     .btn-secondary { background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; }
     .btn-secondary:hover { background: #f1f5f9; }
     
+    .avatars-container { display: flex; align-items: center; gap: 4px; margin-right: 8px; border-right: 1px solid var(--border-color); padding-right: 12px; }
+    .avatar { width: 32px; height: 32px; border-radius: 16px; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; box-shadow: 0 0 0 2px white; cursor: pointer; }
+    
     .workspace { flex: 1; display: flex; padding: 10px; gap: 12px; overflow: hidden; position: relative; }
     
     .toolbar { width: 150px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 120px); overflow-y: auto; flex-shrink: 0; }
@@ -216,13 +249,22 @@ import SockJS from 'sockjs-client';
     .swimlane-body { padding: 24px 16px; display: flex; flex-direction: column; gap: 40px; align-items: center; min-height: 500px; }
     
     /* Nodes */
-    .node-wrapper { width: 100%; position: relative; z-index: 15; transition: transform 0.2s; }
+    .node-wrapper { width: 100%; position: relative; z-index: 15; transition: transform 0.2s; display: flex; justify-content: center; align-items: center; }
     .node-wrapper.selectable { cursor: crosshair; }
     .node-wrapper.selectable:hover { transform: scale(1.02); }
-    .node-wrapper.selected .node-box { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3); }
+    .node-wrapper.selected .node-box, .node-wrapper.selected .decision-config, .node-wrapper.selected .diamond-shape { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3); }
     
     .node-box { width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 12px; border-radius: 6px; background: white; border: 1px solid var(--border-color); }
     .node-box.activity { border-left: 4px solid var(--primary); }
+    
+    /* Decision Nodes Styles */
+    .decision-container { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 12px; }
+    .diamond-wrapper { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+    .diamond-shape { position: absolute; width: 100%; height: 100%; background: #fef3c7; border: 2px solid #f59e0b; transform: rotate(45deg); border-radius: 4px; transition: all 0.2s; }
+    .diamond-wrapper:hover .diamond-shape { background: #fde68a; border-color: #d97706; transform: rotate(45deg) scale(1.05); }
+    .diamond-content { position: relative; z-index: 2; font-size: 1.5rem; }
+    .decision-config { width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: 6px; background: white; border: 1px solid #f59e0b; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1); }
+    .decision-config .node-header .type { color: #d97706; }
     
     .node-header { display: flex; justify-content: space-between; align-items: center; }
     .type { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
@@ -277,6 +319,8 @@ import SockJS from 'sockjs-client';
 })
 export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
   private workflowService = inject(WorkflowService);
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
 
   policyId: string | null = null;
@@ -312,6 +356,8 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
   private stompClient?: Client;
   mySessionId = 'session_' + Date.now() + Math.random().toString(36).substr(2, 9);
   private isProcessingSync = false;
+  
+  connectedUsers: any[] = [];
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -322,6 +368,9 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
             this.policyName = policy.nombre || 'Flujo sin nombre';
             this.nodes = policy.nodos || [];
             this.conexiones = policy.conexiones || [];
+            if (policy.departamentos && policy.departamentos.length > 0) {
+              this.departamentos = policy.departamentos;
+            }
             this.scheduleRedraw();
             this.connectWebSocket();
           }
@@ -339,6 +388,20 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.stompClient.onConnect = (frame) => {
       console.log('Connected to WebSocket for Collaboration: ' + frame);
+      
+      this.stompClient?.subscribe('/topic/presence/' + this.policyId, (message) => {
+        if (message.body) {
+          this.connectedUsers = JSON.parse(message.body);
+          this.cdr.detectChanges();
+        }
+      });
+      
+      const currentUser = this.authService.currentUser() || { username: 'Admin', color: '#6366f1' };
+      this.stompClient?.publish({
+        destination: '/app/designer/presence/join/' + this.policyId,
+        body: JSON.stringify({ username: currentUser.username, color: currentUser.color })
+      });
+
       this.stompClient?.subscribe('/topic/policy/' + this.policyId, (message) => {
         if (message.body) {
           const state = JSON.parse(message.body);
@@ -349,6 +412,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
             if (state.departamentos) this.departamentos = state.departamentos;
             this.policyName = state.nombre;
             this.scheduleRedraw();
+            this.cdr.detectChanges();
             setTimeout(() => this.isProcessingSync = false, 100);
           }
         }
@@ -454,7 +518,7 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
       id: 'n' + Date.now(),
       tipo: backendTipo,
       nombre: tipo === 'START' ? 'Inicio' : tipo === 'END' ? 'Fin' : 'Nueva Etapa',
-      departamentoId: '1', // Por defecto a la primera calle
+      departamentoId: this.departamentos.length > 0 ? this.departamentos[0].id : '1',
       campos: []
     };
     this.nodes.push(newNode);
@@ -570,7 +634,12 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   savePolicy() {
-    const policy: any = { nombre: this.policyName, nodos: this.nodes, conexiones: this.conexiones };
+    const policy: any = { 
+      nombre: this.policyName, 
+      nodos: this.nodes, 
+      conexiones: this.conexiones,
+      departamentos: this.departamentos 
+    };
     if (this.policyId) {
       policy.id = this.policyId;
     }
