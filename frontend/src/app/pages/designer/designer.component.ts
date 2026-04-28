@@ -17,7 +17,15 @@ import SockJS from 'sockjs-client';
           <h1>Diseñador de Flujos (Colaborativo & IA)</h1>
           <input [(ngModel)]="policyName" class="minimal-input" placeholder="Nombre de la política" (ngModelChange)="scheduleRedraw(); broadcastState()">
         </div>
-        <button class="btn-primary" (click)="savePolicy()">Guardar Política</button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button *ngIf="policyId" class="btn-secondary" (click)="copyShareLink()" title="Copiar enlace para otro admin">
+            🔗 Compartir Enlace
+          </button>
+          <span *ngIf="!policyId" style="font-size: 0.8rem; color: #f59e0b; font-weight: 600;">
+            ⚠️ Guarda el flujo primero para activar colaboración
+          </span>
+          <button class="btn-primary" (click)="savePolicy()">Guardar Política</button>
+        </div>
       </header>
       
       <div class="workspace">
@@ -183,6 +191,8 @@ import SockJS from 'sockjs-client';
     .title-section h1 { font-size: 1.25rem; margin-bottom: 4px; }
     .minimal-input { border: none; border-bottom: 1px solid transparent; font-size: 0.875rem; color: var(--text-muted); width: 100%; padding: 4px; background: transparent; }
     .minimal-input:focus { outline: none; border-bottom-color: var(--primary); color: var(--text-main); }
+    .btn-secondary { background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; }
+    .btn-secondary:hover { background: #f1f5f9; }
     
     .workspace { flex: 1; display: flex; padding: 10px; gap: 12px; overflow: hidden; position: relative; }
     
@@ -550,6 +560,15 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
     }
   }
 
+  copyShareLink() {
+    const url = window.location.origin + '/designer/' + this.policyId;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('¡Enlace copiado al portapapeles! Envíalo a otro administrador para colaborar.');
+    }).catch(err => {
+      alert('Error al copiar el enlace. URL: ' + url);
+    });
+  }
+
   savePolicy() {
     const policy: any = { nombre: this.policyName, nodos: this.nodes, conexiones: this.conexiones };
     if (this.policyId) {
@@ -614,6 +633,17 @@ export class DesignerComponent implements AfterViewChecked, OnInit, OnDestroy {
                   origenId: originNode.id,
                   destinoId: destNode.id,
                   condicion: 'DEFAULT'
+                });
+              }
+            } else if (act.action === 'ADD_FIELD') {
+              const targetNode = this.nodes.find(n => n.nombre.toLowerCase().includes(act.nodeNombre?.toLowerCase()));
+              if (targetNode) {
+                if (!targetNode.campos) targetNode.campos = [];
+                targetNode.campos.push({
+                  nombre: 'campo_' + Date.now() + Math.floor(Math.random()*100),
+                  etiqueta: act.etiqueta || 'Nuevo Campo',
+                  tipo: act.tipo || 'TEXTO',
+                  opciones: []
                 });
               }
             }

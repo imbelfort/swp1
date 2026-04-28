@@ -37,8 +37,9 @@ public class GroqIntegrationService {
 
             String systemPrompt = "Eres un asistente para editar diagramas BPMN de trámites. " +
                     "Devuelve SOLO un objeto JSON válido. " +
-                    "Formato esperado: {\"message\": \"Explicación corta\", \"actions\": [{\"action\": \"ADD_NODE\", \"tipo\": \"ACTIVIDAD|INICIO|FIN\", \"nombre\": \"Nombre\", \"departamentoId\": \"1|2|3\"}, {\"action\": \"ADD_CONNECTION\", \"origenNombre\": \"Nodo A\", \"destinoNombre\": \"Nodo B\"}]}. " +
+                    "Formato esperado: {\"message\": \"Explicación corta\", \"actions\": [{\"action\": \"ADD_NODE\", \"tipo\": \"ACTIVIDAD|INICIO|FIN\", \"nombre\": \"Nombre\", \"departamentoId\": \"1|2|3\"}, {\"action\": \"ADD_CONNECTION\", \"origenNombre\": \"Nodo A\", \"destinoNombre\": \"Nodo B\"}, {\"action\": \"ADD_FIELD\", \"nodeNombre\": \"Nombre de la Actividad\", \"etiqueta\": \"Nombre del campo\", \"tipo\": \"TEXTO|NUMERO|SELECCION|FOTO\"}]}. " +
                     "Departamentos: 1=Atención al Cliente, 2=Revisión Técnica / Riesgos, 3=Dirección / Aprobación. " +
+                    "Si el usuario pide subir archivos, usa el tipo FOTO. " +
                     "No incluyas texto fuera del JSON.";
 
             String userPrompt = "Estado actual del diagrama: " + objectMapper.writeValueAsString(currentState) +

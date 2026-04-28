@@ -9,6 +9,7 @@ C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\re
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\CampoFormulario.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\service\GroqIntegrationService.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\Flujo.java
+C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\controller\CollaborationController.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\controller\DepartamentoController.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\LogActividad.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\PoliticaNegocio.java
@@ -23,4 +24,5 @@ C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\mo
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\repository\DepartamentoRepository.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\Formulario.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\model\Nodo.java
+C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\config\WebSocketConfig.java
 C:\Users\Ishmael\Documents\GitHub\swp1\backend\src\main\java\com\swp1\backend\controller\TramiteController.java

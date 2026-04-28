@@ -16,11 +16,13 @@ com\swp1\backend\controller\DepartamentoController.class
 com\swp1\backend\controller\FormularioController.class
 com\swp1\backend\model\PoliticaDeNegocio.class
 com\swp1\backend\model\Flujo.class
+com\swp1\backend\controller\CollaborationController.class
 com\swp1\backend\controller\UsuarioController.class
 com\swp1\backend\controller\PoliticaController.class
 com\swp1\backend\model\PoliticaNegocio.class
 com\swp1\backend\BackendApplication.class
 com\swp1\backend\model\Tramite.class
+com\swp1\backend\config\WebSocketConfig.class
 com\swp1\backend\model\Conexion.class
 com\swp1\backend\controller\AiAssistantController.class
 com\swp1\backend\model\LogActividad.class
